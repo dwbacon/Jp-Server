@@ -295,14 +295,52 @@
             const doRender = () => { currentView = view; updateNavButtons(view); renderView(); viewContainer.classList.add('view-entering'); viewContainer.addEventListener('animationend', () => { viewContainer.classList.remove('view-entering'); }, { once: true }); };
             if (viewContainer.innerHTML.includes('card')) { viewContainer.classList.add('view-exiting'); viewContainer.addEventListener('animationend', () => { viewContainer.classList.remove('view-exiting'); doRender(); }, { once: true }); } else { doRender(); }
         }
-        async function initializeApp() { try { await loadData(); processRecurringExpenses(); applyDarkMode(appData.settings.darkMode); renderView(); document.getElementById('sync-indicator').textContent = '✅ Synced'; } catch (error) { document.getElementById('app-content').innerHTML = `<div class="card"><h2>Error Loading App</h2><p>There was an error loading the application. Please refresh the page.</p><p class="text-gray" style="font-size: 0.8rem;">Error: ${error.message}</p></div>`; } }
+        async function initializeApp() {
+            try {
+                await loadData();
+                processRecurringExpenses();
+                applyDarkMode(appData.settings.darkMode);
+                renderView();
+                checkConnection();
+            } catch (error) {
+                document.getElementById('app-content').innerHTML = `<div class="card"><h2>Error Loading App</h2><p>There was an error loading the application. Please refresh the page.</p><p class="text-gray" style="font-size: 0.8rem;">Error: ${error.message}</p></div>`;
+            }
+        }
         
         // --- Data & Connection ---
-        function checkConnection() { fetch(`${API_BASE}/api/health`).then(response => response.json()).then(() => { if (!isOnline) { isOnline = true; document.getElementById('connection-status').classList.remove('show'); if (isAuthenticated) { showDataStatus('Connection restored', false); } } }).catch(() => { if (isOnline) { isOnline = false; document.getElementById('connection-status').classList.add('show'); if (isAuthenticated) { showDataStatus('Connection lost', true); } } }); }
-        setInterval(checkConnection, 30000);
+        function checkConnection() {
+            fetch(`${API_BASE}/api/health`).then(response => response.json()).then(() => {
+                if (!isOnline) {
+                    isOnline = true;
+                    document.getElementById('connection-status').classList.remove('show');
+                    if (isAuthenticated) { showDataStatus('Connection restored', false); }
+                }
+                updateSyncIndicator();
+            }).catch(() => {
+                if (isOnline) {
+                    isOnline = false;
+                    document.getElementById('connection-status').classList.add('show');
+                    if (isAuthenticated) { showDataStatus('Connection lost', true); }
+                }
+                updateSyncIndicator();
+            });
+        }
+        setInterval(checkConnection, 10000);
         async function saveData() { if (!isOnline || !isAuthenticated) { showDataStatus('Cannot save - offline or not authenticated', true); return false; } try { showDataStatus('Saving...', false, true); const response = await fetch(`${API_BASE}/api/data`, { method: 'POST', headers: { 'Content-Type': 'application/json', }, credentials: 'include', body: JSON.stringify(appData) }); if (response.status === 401) { showDataStatus('Session expired - please login again', true); showLogin(); return false; } if (response.ok) { showDataStatus('Saved!', false); return true; } else { throw new Error('Server error'); } } catch (error) { showDataStatus('Save failed', true); return false; } }
         async function loadData() { if (!isAuthenticated) return false; try { showDataStatus('Loading...', false, true); const response = await fetch(`${API_BASE}/api/data`, { credentials: 'include' }); if (response.status === 401) { showDataStatus('Session expired - please login again', true); showLogin(); return false; } if (response.ok) { const serverData = await response.json(); const defaultData = getDefaultData(); appData = { ...defaultData, ...serverData, settings: { ...defaultData.settings, ...(serverData.settings || {}) }, expenseCategories: serverData.expenseCategories || defaultData.expenseCategories, recurringExpenses: serverData.recurringExpenses || [] }; showDataStatus('Loaded!', false); return true; } else { throw new Error('Server error'); } } catch (error) { showDataStatus('Load failed - using defaults', true); return false; } }
-        function showDataStatus(message, isError = false, isLoading = false) { const statusElement = document.getElementById('data-status'); statusElement.innerHTML = message; statusElement.className = `data-status show ${isError ? 'error' : ''} ${isLoading ? 'loading' : ''}`; setTimeout(() => { statusElement.className = 'data-status'; }, isLoading ? 5000 : 2000); }
+        function showDataStatus(message, isError = false, isLoading = false) {
+            const statusElement = document.getElementById('data-status');
+            statusElement.innerHTML = message;
+            statusElement.className = `data-status show ${isError ? 'error' : ''} ${isLoading ? 'loading' : ''}`;
+            setTimeout(() => { statusElement.className = 'data-status'; }, isLoading ? 5000 : 2000);
+        }
+
+        function updateSyncIndicator() {
+            const indicator = document.getElementById('sync-indicator');
+            if (indicator) {
+                indicator.textContent = isOnline ? '✅ Connected' : '❌ Offline';
+            }
+        }
 
         // --- Helper Functions ---
         function getCategoryById(id) { return appData.expenseCategories.find(c => c.id === id) || appData.expenseCategories.find(c => c.id === 'other'); }
