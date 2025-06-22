@@ -104,7 +104,11 @@
         .mobile-nav-links .nav-btn.active { color: var(--primary-color); }
 
         /* --- Main Content & View Transitions --- */
+
         main { padding: 1.5rem 0; margin-top: 2rem; }
+
+        main { padding: 1.5rem 0; margin-top: 1rem; }
+
         #app-content { transition: opacity var(--transition-speed) var(--transition-timing), transform var(--transition-speed) var(--transition-timing); }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeOutDown { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(20px); } }
@@ -207,6 +211,8 @@
         .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
         
         /* --- Status Indicators --- */
+        .settings-data-management { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0 0.5rem; }
+        .settings-data-management .btn { flex-grow: 1; }
         .data-status, .connection-status { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px); color: white; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-small); font-size: 0.9rem; font-weight: 500; z-index: 2000; opacity: 0; transition: all var(--transition-speed) var(--transition-timing); pointer-events: none; }
         .data-status.show, .connection-status.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .data-status.error, .connection-status { background: var(--danger-color); } .data-status.loading { background: var(--warning-color); }
@@ -224,8 +230,6 @@
             .card { padding: 1rem; } .card h2 { font-size: 1.5rem; }
             .desktop-calendar { display: none; } .mobile-calendar { display: block; }
             .graph-btn-container { display: grid; grid-template-columns: 1fr 1fr; }
-            .settings-data-management { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0 0.5rem; }
-            .settings-data-management .btn { flex-grow: 1; }
             .grid-2 { grid-template-columns: 1fr; }
             .calendar-week-grid { display: block; border: none; }
             .calendar-week-day { border: none; border-bottom: 1px solid var(--border-color); }
