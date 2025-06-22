@@ -28,21 +28,22 @@
         });
         
         // --- Configuration & State ---
-        const API_BASE = window.location.origin; let isOnline = true; let isAuthenticated = false; let appData = getDefaultData(); let currentView = window.INIT_VIEW || 'dashboard'; let editingIncome = null; let editingExpense = null; let editingCategory = null; let editingRecurringExpense = null; let selectedDate = new Date().toISOString(); let showAddEvent = false; let editingEvent = null; let currentCalendarDate = new Date(); let eventData = { date: '', endDate: '', startTime: '', endTime: '', type: 'work', description: '' }; let analyticsChart = null; let fullAnalyticsData = {}; let showAllIncomeHistory = false; let dashboardGrowthChart = null; let dashboardExpenseChart = null; let currentCalendarView = 'month'; // 'month', 'week', or 'agenda'
+        const API_BASE = window.location.origin; let isOnline = true; let isAuthenticated = false; let isAdmin = false; let appData = getDefaultData(); let currentView = window.INIT_VIEW || 'dashboard'; let editingIncome = null; let editingExpense = null; let editingCategory = null; let editingRecurringExpense = null; let selectedDate = new Date().toISOString(); let showAddEvent = false; let editingEvent = null; let currentCalendarDate = new Date(); let eventData = { date: '', endDate: '', startTime: '', endTime: '', type: 'work', description: '' }; let analyticsChart = null; let fullAnalyticsData = {}; let showAllIncomeHistory = false; let dashboardGrowthChart = null; let dashboardExpenseChart = null; let currentCalendarView = 'month'; // 'month', 'week', or 'agenda'
         
         // --- Dark Mode ---
         function applyDarkMode(isDark) { document.body.classList.toggle('dark-mode', isDark); }
         function toggleDarkMode() { appData.settings.darkMode = !appData.settings.darkMode; applyDarkMode(appData.settings.darkMode); saveData(); renderView(); }
         
         // --- Authentication & App Lifecycle ---
-        async function checkAuthStatus() { try { const response = await fetch(`${API_BASE}/api/auth/status`, { credentials: 'include' }); const data = await response.json(); if (data.authenticated) { isAuthenticated = true; document.getElementById('user-info').textContent = `Welcome, ${data.username}`; showApp(); } else { isAuthenticated = false; showLogin(); } } catch (error) { showLogin(); } }
-        async function handleLogin(event) { event.preventDefault(); const username = document.getElementById('username').value; const password = document.getElementById('password').value; const submitBtn = document.getElementById('login-submit-btn'); const errorDiv = document.getElementById('login-error'); submitBtn.textContent = 'Logging in...'; submitBtn.disabled = true; errorDiv.style.display = 'none'; try { const response = await fetch(`${API_BASE}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ username, password }) }); const data = await response.json(); if (data.success) { isAuthenticated = true; document.getElementById('user-info').textContent = `Welcome, ${username}`; showDataStatus('Login successful!', false); showApp(); } else { errorDiv.textContent = data.message || 'Invalid credentials'; errorDiv.style.display = 'block'; } } catch (error) { errorDiv.textContent = 'Login failed. Please try again.'; errorDiv.style.display = 'block'; } finally { submitBtn.textContent = 'Login'; submitBtn.disabled = false; } }
+        async function checkAuthStatus() { try { const response = await fetch(`${API_BASE}/api/auth/status`, { credentials: 'include' }); const data = await response.json(); if (data.authenticated) { isAuthenticated = true; isAdmin = !!data.isAdmin; document.getElementById('user-info').textContent = `Welcome, ${data.username}`; showApp(); } else { isAuthenticated = false; isAdmin = false; showLogin(); } } catch (error) { showLogin(); } }
+        async function handleLogin(event) { event.preventDefault(); const username = document.getElementById('username').value; const password = document.getElementById('password').value; const submitBtn = document.getElementById('login-submit-btn'); const errorDiv = document.getElementById('login-error'); submitBtn.textContent = 'Logging in...'; submitBtn.disabled = true; errorDiv.style.display = 'none'; try { const response = await fetch(`${API_BASE}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ username, password }) }); const data = await response.json(); if (data.success) { isAuthenticated = true; isAdmin = !!data.isAdmin; document.getElementById('user-info').textContent = `Welcome, ${username}`; showDataStatus('Login successful!', false); showApp(); } else { errorDiv.textContent = data.message || 'Invalid credentials'; errorDiv.style.display = 'block'; } } catch (error) { errorDiv.textContent = 'Login failed. Please try again.'; errorDiv.style.display = 'block'; } finally { submitBtn.textContent = 'Login'; submitBtn.disabled = false; } }
 
         async function logout() {
             try {
                 await fetch(`${API_BASE}/api/logout`, { method: 'POST', credentials: 'include' });
                 sessionStorage.removeItem('appData');
                 isAuthenticated = false;
+                isAdmin = false;
                 document.getElementById('user-info').textContent = '';
                 showDataStatus('Logged out', false);
                 showLogin();
@@ -51,7 +52,6 @@
             }
         }
 
-        async function logout() { try { await fetch(`${API_BASE}/api/logout`, { method: 'POST', credentials: 'include' }); isAuthenticated = false; document.getElementById('user-info').textContent = ''; showDataStatus('Logged out', false); showLogin(); } catch (error) { console.error('Logout failed:', error); } }
 
         function showLogin() { document.getElementById('login-page').style.display = 'block'; document.getElementById('app-content').style.display = 'none'; document.querySelector('.header-sticky-container').style.display = 'none'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('login-error').style.display = 'none'; }
         function showApp() { document.getElementById('login-page').style.display = 'none'; document.getElementById('app-content').style.display = 'block'; document.querySelector('.header-sticky-container').style.display = 'block'; initializeApp(); }
@@ -579,6 +579,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                 </div>
                 <div><h3>🇯🇵 Japan Fund Settings</h3><div class="form-row"><div class="form-group"><label class="form-label">Goal Amount ($)</label><input type="number" id="goal-amount" value="${appData.goalAmount}" onchange="updateGoalAmount(parseFloat(this.value) || 40000)" class="form-input"></div><div class="form-group"><label class="form-label">Target Date</label><input type="date" id="target-date" value="${appData.targetDate}" onchange="updateTargetDate(this.value)" class="form-input"></div></div></div>
                 <div><h3>💾 Data Management</h3><div class="settings-data-management"><button onclick="downloadBackup()" class="btn btn-secondary">Download Backup</button><button onclick="document.getElementById('restore-file').click()" class="btn btn-secondary">Restore Backup</button><button onclick="clearAllData()" class="btn btn-danger">Clear All Data</button><button onclick="logout()" class="btn btn-danger">Logout</button></div><input type="file" id="restore-file" accept=".json" style="display: none;" onchange="restoreBackup(event)"></div>
+                ${isAdmin ? `<div id="admin-controls"><h3>👑 Admin Controls</h3><button class="btn btn-secondary" onclick="loadUserList()">Refresh Users</button><ul id="user-list" class="mt-2"></ul></div>` : ''}
              </div></div></div>`;
         }
 
@@ -842,4 +843,17 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                 }
             });
             if(needsSave) await saveData();
+        }
+
+        async function loadUserList() {
+            try {
+                const res = await fetch(`${API_BASE}/api/users`, { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const list = document.getElementById('user-list');
+                    if (list) list.innerHTML = data.users.map(u => `<li>${u}</li>`).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load users', error);
+            }
         }
