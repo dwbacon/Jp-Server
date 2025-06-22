@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 2rem auto; }
+        label { display: block; margin-top: 1rem; }
+        input { width: 100%; padding: 0.5rem; margin-top: 0.25rem; }
+        button { margin-top: 1rem; padding: 0.5rem 1rem; width: 100%; }
+        #error { color: red; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <h2>🔒 Secure Access</h2>
+    <form id="login-form">
+        <label>Username
+            <input type="text" id="username" required>
+        </label>
+        <label>Password
+            <input type="password" id="password" required>
+        </label>
+        <button type="submit" id="login-submit-btn">Login</button>
+        <div id="error"></div>
+        <p style="text-align:center;margin-top:1rem;"><a href="register.html">Create account</a></p>
+    </form>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('login-submit-btn');
+            const err = document.getElementById('error');
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+            err.textContent = '';
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = 'index.html';
+                } else {
+                    err.textContent = data.message || 'Invalid credentials';
+                }
+            } catch (e2) {
+                err.textContent = 'Login failed';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Login';
+            }
+        });
+    </script>
+</body>
+</html>
