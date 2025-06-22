@@ -970,15 +970,87 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             if(needsSave) await saveData();
         }
 
-        async function loadUserList() {
-            try {
-                const res = await fetch(`${API_BASE}/api/users`, { credentials: 'include' });
-                if (res.ok) {
-                    const data = await res.json();
-                    const list = document.getElementById('user-list');
-                    if (list) list.innerHTML = data.users.map(u => `<li>${u}</li>`).join('');
-                }
-            } catch (error) {
-                console.error('Failed to load users', error);
-            }
+async function loadUserList() {
+    try {
+        const res = await fetch(`${API_BASE}/api/users`, { credentials: 'include' });
+        if (res.ok) {
+            const data = await res.json();
+            const list = document.getElementById('user-list');
+            if (list) list.innerHTML = data.users.map(u => `
+                <li class="flex gap-2 items-center">
+                    <span class="flex-grow">${u}</span>
+                    <button class="btn btn-small btn-secondary" onclick="impersonateUser('${u}')">Login</button>
+                    <button class="btn btn-small btn-secondary" onclick="showUserEdit('${u}')">Edit</button>
+                    <button class="btn btn-small btn-danger" onclick="deleteUser('${u}')">Del</button>
+                </li>`).join('');
         }
+    } catch (error) {
+        console.error('Failed to load users', error);
+    }
+}
+
+async function showUserEdit(username) {
+    try {
+        const res = await fetch(`${API_BASE}/api/users/${username}/info`, { credentials: 'include' });
+        if (!res.ok) return;
+        const info = await res.json();
+        const newUsername = prompt('New username:', info.username);
+        if (newUsername === null) return;
+        const newPassword = prompt('New password (leave blank to keep same):', '');
+        const body = { username, newUsername: newUsername || undefined };
+        if (newPassword) body.newPassword = newPassword;
+        const updateRes = await fetch(`${API_BASE}/api/users/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(body)
+        });
+        if (updateRes.ok) {
+            alert('User updated');
+            loadUserList();
+        } else {
+            alert('Update failed');
+        }
+    } catch (err) {
+        console.error('Edit user failed', err);
+    }
+}
+
+async function deleteUser(username) {
+    if (!confirm(`Delete ${username}?`)) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/users/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ username })
+        });
+        if (res.ok) {
+            loadUserList();
+        } else {
+            alert('Delete failed');
+        }
+    } catch (err) {
+        console.error('Delete user failed', err);
+    }
+}
+
+async function impersonateUser(username) {
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/impersonate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ username })
+        });
+        if (res.ok) {
+            await checkAuthStatus();
+            await loadData();
+            renderView();
+        } else {
+            alert('Login as user failed');
+        }
+    } catch (err) {
+        console.error('Impersonate failed', err);
+    }
+}
