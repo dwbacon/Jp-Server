@@ -633,7 +633,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             return html;
         }
         function renderSettings() {
-             const categoryForm = `
+            const categoryForm = `
                 <div id="category-form" style="display: ${editingCategory === 'new' ? 'block' : 'none'}; background-color: var(--background-color-dark); padding: 1rem; border-radius: var(--border-radius-medium); margin-top: 1rem;">
                     <h4>${editingCategory === 'new' ? 'Add New Category' : 'Edit Category'}</h4>
                     <div class="form-row mt-4">
@@ -662,6 +662,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                         </div>
                     `).join('')}</div>
                     <button class="btn btn-secondary mt-4" onclick="startEditCategory('new')">Add New Category</button>
+                    ${categoryForm}
                 </div>
                 <div><h3>🇯🇵 Japan Fund Settings</h3><div class="form-row"><div class="form-group"><label class="form-label">Goal Amount ($)</label><input type="number" id="goal-amount" value="${appData.goalAmount}" onchange="updateGoalAmount(parseFloat(this.value) || 40000)" class="form-input"></div><div class="form-group"><label class="form-label">Target Date</label><input type="date" id="target-date" value="${appData.targetDate}" onchange="updateTargetDate(this.value)" class="form-input"></div></div></div>
                 <div><h3>💾 Data Management</h3><div class="settings-data-management"><button onclick="downloadBackup()" class="btn btn-secondary">Download Backup</button><button onclick="document.getElementById('restore-file').click()" class="btn btn-secondary">Restore Backup</button><button onclick="clearAllData()" class="btn btn-danger">Clear All Data</button><button onclick="logout()" class="btn btn-danger">Logout</button></div><input type="file" id="restore-file" accept=".json" style="display: none;" onchange="restoreBackup(event)"></div>
