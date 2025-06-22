@@ -9,6 +9,10 @@
         input { width: 100%; padding: 0.5rem; margin-top: 0.25rem; }
         button { margin-top: 1rem; padding: 0.5rem 1rem; }
         #error { color: red; margin-top: 1rem; }
+        #popup-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); z-index: 3000; }
+        #popup-overlay.show { display: flex; }
+        #popup-box { background: white; padding: 1rem; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); max-width: 320px; width: 90%; }
+        #popup-buttons { margin-top: 1rem; text-align: right; }
     </style>
 </head>
 <body>
@@ -23,7 +27,27 @@
         <button type="submit">Create</button>
         <div id="error"></div>
     </form>
+    <div id="popup-overlay">
+        <div id="popup-box">
+            <div id="popup-message"></div>
+            <div id="popup-buttons">
+                <button id="popup-ok">OK</button>
+            </div>
+        </div>
+    </div>
     <script>
+        function showPopup(message) {
+            const overlay = document.getElementById('popup-overlay');
+            const msg = document.getElementById('popup-message');
+            msg.textContent = message;
+            overlay.classList.add('show');
+            return new Promise(resolve => {
+                const btn = document.getElementById('popup-ok');
+                const handler = () => { overlay.classList.remove('show'); btn.removeEventListener('click', handler); resolve(); };
+                btn.addEventListener('click', handler);
+            });
+        }
+
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('reg-username').value;
@@ -36,7 +60,7 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    alert('Account created');
+                    await showPopup('Account created');
                     window.location.href = 'index.html';
                 } else {
                     document.getElementById('error').textContent = data.message || 'Error';
