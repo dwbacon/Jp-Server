@@ -165,7 +165,7 @@
         .agenda-view .agenda-day:last-child { border-bottom: none; }
         .agenda-view h4 { font-size: 1.1rem; margin-bottom: 0.75rem; }
         .desktop-calendar { display: block; } .mobile-calendar { display: none; }
-        .calendar-header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .calendar-header-controls { display: flex; justify-content: space-between; align-items: center; margin: 1rem 0; gap: 0.5rem; }
         .calendar-days-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 0.5rem; text-align: center; font-size: 0.875rem; color: var(--text-color-secondary); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: var(--border-color); border: 1px solid var(--border-color); border-radius: var(--border-radius-medium); overflow: hidden; }
         .calendar-day { background: var(--card-background); min-height: 110px; padding: 0.5rem; cursor: pointer; transition: background-color 0.2s; position: relative; }
@@ -194,7 +194,10 @@
 
 
         /* --- Utility & Helper Classes --- */
-        .flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; } .gap-2 { gap: 0.5rem; } .gap-4 { gap: 1rem; } .space-y-3 > * + * { margin-top: 0.75rem; } .space-y-6 > * + * { margin-top: 1.5rem; }
+        .flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; } .gap-2 { gap: 0.5rem; } .gap-4 { gap: 1rem; }
+        .space-y-3 > * + * { margin-top: 0.75rem; } .space-y-6 > * + * { margin-top: 1.5rem; }
+        .mt-4 { margin-top: 1rem; } .mb-4 { margin-bottom: 1rem; } .mb-2 { margin-bottom: 0.5rem; } .ml-2 { margin-left: 0.5rem; }
+        .p-2 { padding: 0.5rem; } .p-4 { padding: 1rem; }
         .text-center { text-align: center; } .text-gray { color: var(--text-color-secondary); } .form-row { display: flex; gap: 1rem; } .form-row > * { flex: 1; }
         .graph-btn-container { display: flex; flex-wrap: wrap; gap: 0.5rem; } .graph-btn { flex-grow: 1; }
         .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
