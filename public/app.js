@@ -718,7 +718,20 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
         async function updateTargetDate(value) { appData.targetDate = value; await saveData(); }
         async function downloadBackup() { try { showDataStatus('Creating backup...', false, true); const response = await fetch(`${API_BASE}/api/backup`, { credentials: 'include' }); if (response.ok) { const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = response.headers.get('Content-Disposition').split('filename=')[1].replace(/"/g, ''); link.click(); URL.revokeObjectURL(url); showDataStatus('Backup downloaded!', false); } else { throw new Error('Backup failed'); } } catch (error) { showDataStatus('Backup failed', true); } }
         async function restoreBackup(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = async function(e) { try { const backupData = JSON.parse(e.target.result); if (confirm('This will replace all your current data. Are you sure?')) { showDataStatus('Restoring backup...', false, true); const response = await fetch(`${API_BASE}/api/restore`, { method: 'POST', headers: { 'Content-Type': 'application/json', }, credentials: 'include', body: JSON.stringify(backupData) }); if (response.ok) { appData = { ...getDefaultData(), ...backupData }; renderView(); showDataStatus('Backup restored!', false); } else { throw new Error('Restore failed'); } } } catch (error) { showDataStatus('Invalid backup file', true); } }; reader.readAsText(file); event.target.value = ''; }
-        async function clearAllData() { if (confirm('Are you sure you want to delete ALL your data? This cannot be undone!')) { if (confirm('This will delete everything. Final confirmation?')) { try { showDataStatus('Clearing data...', false, true); const darkMode = appData.settings.darkMode; appData = getDefaultData(); appData.settings.darkMode = darkMode; await saveData(); renderView(); showDataStatus('All data cleared', false); } catch (error) { showDataStatus('Clear failed', true); } } } }
+        async function clearAllData() {
+            if (!confirm('This will delete ALL your data and cannot be undone. Continue?')) return;
+            try {
+                showDataStatus('Clearing data...', false, true);
+                const darkMode = appData.settings.darkMode;
+                appData = getDefaultData();
+                appData.settings.darkMode = darkMode;
+                await saveData();
+                renderView();
+                showDataStatus('All data cleared', false);
+            } catch (error) {
+                showDataStatus('Clear failed', true);
+            }
+        }
 
         // --- Category Management ---
         function startEditCategory(id) { editingCategory = id; renderView(); }
