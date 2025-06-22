@@ -61,11 +61,46 @@
             const mobileNavLinksContainer = mobileNavOverlay.querySelector('.mobile-nav-links');
             const body = document.body;
             const navContainer = document.querySelector('.nav-container');
+
             mobileNavLinksContainer.innerHTML = navContainer.innerHTML;
             mobileMenuBtn.addEventListener('click', () => { body.classList.toggle('nav-open'); });
-            mobileNavLinksContainer.querySelectorAll('.nav-btn').forEach(btn => { btn.addEventListener('click', () => { body.classList.remove('nav-open');   }); });
+
+            function handleNavClick(e) {
+                e.preventDefault();
+                body.classList.remove('nav-open');
+                const view = this.dataset.view;
+                navigateTo(view);
+            }
+
+            navContainer.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', handleNavClick);
+            });
+            mobileNavLinksContainer.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', handleNavClick);
+            });
+
             updateNavButtons(currentView);
             checkAuthStatus();
+            history.replaceState({view: currentView}, '', getPageForView(currentView));
+        });
+
+        function getPageForView(view) {
+            return view === 'dashboard' ? 'index.html' : `${view}.html`;
+        }
+
+        function navigateTo(view, skipPush) {
+            if (!view || view === currentView) return;
+            currentView = view;
+            updateNavButtons(view);
+            renderView();
+            if (!skipPush) {
+                history.pushState({view}, '', getPageForView(view));
+            }
+        }
+
+        window.addEventListener('popstate', (e) => {
+            const view = (e.state && e.state.view) || window.INIT_VIEW || 'dashboard';
+            navigateTo(view, true);
         });
         function updateNavButtons(view) { document.querySelectorAll('.nav-btn[data-view]').forEach(btn => { btn.classList.toggle('active', btn.dataset.view === view); }); }
         async function initializeApp() {
