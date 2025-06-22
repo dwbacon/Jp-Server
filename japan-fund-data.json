@@ -1,0 +1,405 @@
+{
+  "currentBalance": 1084.48,
+  "goalAmount": 30000,
+  "targetDate": "2028-05-26",
+  "income": [
+    {
+      "id": 1749614511965,
+      "type": "paycheck",
+      "amount": 175.68,
+      "hours": 17.68,
+      "taxes": 18.8,
+      "date": "2025-05-08"
+    },
+    {
+      "id": 1749614560893,
+      "type": "paycheck",
+      "amount": 273.62,
+      "hours": 27.78,
+      "taxes": 31.96,
+      "date": "2025-05-22"
+    },
+    {
+      "id": 1749614605688,
+      "type": "paycheck",
+      "amount": 57.46,
+      "hours": 5.75,
+      "taxes": 5.79,
+      "date": "2025-06-05"
+    },
+    {
+      "id": 1749620908782,
+      "type": "tips_pay_period",
+      "amount": 29,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-05-07"
+    },
+    {
+      "id": 1749621032974,
+      "type": "tips_pay_period",
+      "amount": 14,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-05-21"
+    },
+    {
+      "id": 1749621072039,
+      "type": "tips_pay_period",
+      "amount": 10,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-06-04"
+    },
+    {
+      "id": 1750556510354,
+      "type": "paycheck",
+      "amount": 326.18,
+      "hours": 33.74,
+      "taxes": 44.96,
+      "date": "2025-06-21"
+    },
+    {
+      "id": 1750556554662,
+      "type": "tips_daily",
+      "amount": 6,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-06-21"
+    }
+  ],
+  "workShifts": [
+    {
+      "id": 1749615035673,
+      "date": "2025-04-27",
+      "startTime": "16:00",
+      "endTime": "17:00",
+      "hours": 1,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615057450,
+      "date": "2025-04-29",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615071879,
+      "date": "2025-04-30",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615102256,
+      "date": "2025-05-03",
+      "startTime": "16:00",
+      "endTime": "20:00",
+      "hours": 4,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615118286,
+      "date": "2025-05-04",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615133891,
+      "date": "2025-05-06",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615148205,
+      "date": "2025-05-07",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615163241,
+      "date": "2025-05-09",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615178148,
+      "date": "2025-05-10",
+      "startTime": "16:00",
+      "endTime": "20:00",
+      "hours": 4,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615192374,
+      "date": "2025-05-11",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615208565,
+      "date": "2025-05-13",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615232478,
+      "date": "2025-05-16",
+      "startTime": "17:00",
+      "endTime": "21:00",
+      "hours": 4,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615251819,
+      "date": "2025-05-17",
+      "startTime": "16:00",
+      "endTime": "20:00",
+      "hours": 4,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615271495,
+      "date": "2025-05-20",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615296966,
+      "date": "2025-05-23",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615321109,
+      "date": "2025-06-03",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615334341,
+      "date": "2025-06-04",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615347100,
+      "date": "2025-06-05",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615367155,
+      "date": "2025-06-07",
+      "startTime": "16:00",
+      "endTime": "21:00",
+      "hours": 5,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615403937,
+      "date": "2025-06-09",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615418041,
+      "date": "2025-06-10",
+      "startTime": "16:00",
+      "endTime": "20:00",
+      "hours": 4,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615446976,
+      "date": "2025-06-13",
+      "startTime": "16:00",
+      "endTime": "20:00",
+      "hours": 4,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615461360,
+      "date": "2025-06-14",
+      "startTime": "16:00",
+      "endTime": "21:00",
+      "hours": 5,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749615474787,
+      "date": "2025-06-15",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749861280445,
+      "date": "2025-06-17",
+      "startTime": "16:00",
+      "endTime": "20:00",
+      "hours": 4,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749861302246,
+      "date": "2025-06-21",
+      "startTime": "16:00",
+      "endTime": "21:00",
+      "hours": 5,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1749861321050,
+      "date": "2025-06-22",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1750556678577,
+      "date": "2025-06-24",
+      "startTime": "16:00",
+      "endTime": "20:00",
+      "hours": 4,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1750556694297,
+      "date": "2025-06-25",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1750556730500,
+      "date": "2025-06-28",
+      "startTime": "16:00",
+      "endTime": "21:00",
+      "hours": 5,
+      "type": "work",
+      "description": ""
+    }
+  ],
+  "expenses": [],
+  "recurringExpenses": [],
+  "settings": {
+    "paySchedule": "bi-weekly",
+    "lastPayDate": "2025-06-04",
+    "hourlyRate": 11,
+    "taxRate": 0.11,
+    "darkMode": true
+  },
+  "expenseCategories": [
+    {
+      "id": "food",
+      "name": "Food & Dining",
+      "color": "#f97316",
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\" width=\"24\" height=\"24\"><path d=\"M12.383 3.963c.27-.27.653-.414 1.058-.414h.01a1.414 1.414 0 011.058 2.472L7.52 12.983A2.828 2.828 0 015.42 15H3.172a1.414 1.414 0 01-1.058-2.472l6.983-6.983c.27-.27.414-.653.414-1.058v-.01a1.414 1.414 0 01-.128-.528zM4.586 16.414a1.414 1.414 0 100 2.828 1.414 1.414 0 000-2.828zM15 6.414a1.414 1.414 0 100-2.828 1.414 1.414 0 000 2.828zM17.828 9.5a1.414 1.414 0 10-2.828 0 1.414 1.414 0 002.828 0z\"/></svg>"
+    },
+    {
+      "id": "transportation",
+      "name": "Transportation",
+      "color": "#3b82f6",
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\" width=\"24\" height=\"24\"><path fill-rule=\"evenodd\" d=\"M6.22 8.22a.75.75 0 011.06 0l2.22 2.22a.75.75 0 001.06 0l2.22-2.22a.75.75 0 011.06 1.06l-2.75 2.75a.75.75 0 01-1.06 0L6.22 9.28a.75.75 0 010-1.06z\" clip-rule=\"evenodd\" /><path fill-rule=\"evenodd\" d=\"M1.5 6.375c0-1.036.84-1.875 1.875-1.875h13.25c1.035 0 1.875.84 1.875 1.875v7.25c0 1.035-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 13.625v-7.25zm1.875-.375a.375.375 0 00-.375.375v7.25c0 .207.168.375.375.375h13.25a.375.375 0 00.375-.375v-7.25a.375.375 0 00-.375-.375H3.375z\" clip-rule=\"evenodd\" /></svg>"
+    },
+    {
+      "id": "entertainment",
+      "name": "Entertainment",
+      "color": "#8b5cf6",
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\" width=\"24\" height=\"24\"><path d=\"M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h13.5A2.25 2.25 0 0019 13.75v-7.5A2.25 2.25 0 0016.75 4H3.25zM16.5 6a.5.5 0 01.5.5v3.5a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5V6.5a.5.5 0 01.5-.5h13zM3 12.5a.5.5 0 01.5-.5h13a.5.5 0 01.5.5v.75a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-.75z\" /></svg>"
+    },
+    {
+      "id": "shopping",
+      "name": "Shopping",
+      "color": "#ec4899",
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\" width=\"24\" height=\"24\"><path fill-rule=\"evenodd\" d=\"M3 4.25A2.25 2.25 0 015.25 2h9.5A2.25 2.25 0 0117 4.25v2.5a.75.75 0 01-1.5 0v-2.5a.75.75 0 00-.75-.75h-9.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h9.5a.75.75 0 00.75-.75v-2.5a.75.75 0 011.5 0v2.5A2.25 2.25 0 0114.75 18h-9.5A2.25 2.25 0 013 15.75V4.25z\" clip-rule=\"evenodd\" /><path fill-rule=\"evenodd\" d=\"M9.44 8.63a.75.75 0 01.12-1.05l5-4.25a.75.75 0 11.94 1.17l-5 4.25a.75.75 0 01-1.06-.12zM12.75 11.75a.75.75 0 000 1.5h.5a.75.75 0 000-1.5h-.5z\" clip-rule=\"evenodd\" /></svg>"
+    },
+    {
+      "id": "bills",
+      "name": "Bills & Utilities",
+      "color": "#6b7280",
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\" width=\"24\" height=\"24\"><path d=\"M11.25 6.5a.75.75 0 00-1.5 0v3.5a.75.75 0 00.75.75h2.5a.75.75 0 000-1.5h-1.75V6.5z\" /><path fill-rule=\"evenodd\" d=\"M6.354 3.354a.75.75 0 010 1.06l-2.5 2.5a.75.75 0 11-1.06-1.06l2.5-2.5a.75.75 0 011.06 0zm9.192 0a.75.75 0 000 1.06l-2.5 2.5a.75.75 0 10-1.06-1.06l2.5-2.5a.75.75 0 001.06 0zM10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM3.5 10a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM14.25 10a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z\" clip-rule=\"evenodd\" /><path d=\"M2.875 14.25a.75.75 0 000 1.5h14.25a.75.75 0 000-1.5H2.875z\" /></svg>"
+    },
+    {
+      "id": "japan_prep",
+      "name": "Japan Prep",
+      "color": "#ef4444",
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\" width=\"24\" height=\"24\"><path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 100-16 8 8 0 000 16zM9.006 4.994a.75.75 0 011.988 0l2.5 4.25a.75.75 0 01-.643 1.106H6.15a.75.75 0 01-.643-1.106l2.5-4.25zM10 12a1 1 0 100 2 1 1 0 000-2z\" clip-rule=\"evenodd\" /></svg>"
+    },
+    {
+      "id": "other",
+      "name": "Other",
+      "color": "#10b981",
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\" width=\"24\" height=\"24\"><path d=\"M3.25 4A2.25 2.25 0 015.5 1.75h9A2.25 2.25 0 0116.75 4v11.5A2.25 2.25 0 0114.5 17.75h-9A2.25 2.25 0 013.25 15.5V4zm2.25-.25a.75.75 0 00-.75.75V15.5c0 .414.336.75.75.75h9a.75.75 0 00.75-.75V4a.75.75 0 00-.75-.75h-9z\" /><path d=\"M9 7.75a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5A.75.75 0 019 7.75zM9 11.25a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5a.75.75 0 01-.75-.75z\"/></svg>"
+    }
+  ],
+  "expenseBudgets": {
+    "food": 400,
+    "transportation": 150,
+    "entertainment": 200,
+    "shopping": 100,
+    "bills": 300,
+    "japanPrep": 50,
+    "other": 100
+  }
+}
