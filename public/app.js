@@ -35,22 +35,58 @@
         function toggleDarkMode() { appData.settings.darkMode = !appData.settings.darkMode; applyDarkMode(appData.settings.darkMode); saveData(); renderView(); }
         
         // --- Authentication & App Lifecycle ---
-        async function checkAuthStatus() { try { const response = await fetch(`${API_BASE}/api/auth/status`, { credentials: 'include' }); const data = await response.json(); if (data.authenticated) { isAuthenticated = true; isAdmin = !!data.isAdmin; document.getElementById('user-info').textContent = `Welcome, ${data.username}`; showApp(); } else { isAuthenticated = false; isAdmin = false; showLogin(); } } catch (error) { showLogin(); } }
-        async function handleLogin(event) { event.preventDefault(); const username = document.getElementById('username').value; const password = document.getElementById('password').value; const submitBtn = document.getElementById('login-submit-btn'); const errorDiv = document.getElementById('login-error'); submitBtn.textContent = 'Logging in...'; submitBtn.disabled = true; errorDiv.style.display = 'none'; try { const response = await fetch(`${API_BASE}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ username, password }) }); const data = await response.json(); if (data.success) { isAuthenticated = true; isAdmin = !!data.isAdmin; document.getElementById('user-info').textContent = `Welcome, ${username}`; showDataStatus('Login successful!', false); showApp(); } else { errorDiv.textContent = data.message || 'Invalid credentials'; errorDiv.style.display = 'block'; } } catch (error) { errorDiv.textContent = 'Login failed. Please try again.'; errorDiv.style.display = 'block'; } finally { submitBtn.textContent = 'Login'; submitBtn.disabled = false; } }
         async function checkAuthStatus() {
             try {
                 const response = await fetch(`${API_BASE}/api/auth/status`, { credentials: 'include' });
                 const data = await response.json();
                 if (data.authenticated) {
                     isAuthenticated = true;
+                    isAdmin = !!data.isAdmin;
                     document.getElementById('user-info').textContent = `Welcome, ${data.username}`;
                     showApp();
                 } else {
                     isAuthenticated = false;
+                    isAdmin = false;
                     showLogin();
                 }
             } catch (error) {
                 showLogin();
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('login-submit-btn');
+            const errorDiv = document.getElementById('login-error');
+            submitBtn.textContent = 'Logging in...';
+            submitBtn.disabled = true;
+            errorDiv.style.display = 'none';
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    isAuthenticated = true;
+                    isAdmin = !!data.isAdmin;
+                    document.getElementById('user-info').textContent = `Welcome, ${username}`;
+                    showDataStatus('Login successful!', false);
+                    showApp();
+                } else {
+                    errorDiv.textContent = data.message || 'Invalid credentials';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Login failed. Please try again.';
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.textContent = 'Login';
+                submitBtn.disabled = false;
             }
         }
 
