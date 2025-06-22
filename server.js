@@ -170,7 +170,8 @@ app.post('/api/register', async (req, res) => {
         users[username] = { username, passwordHash: hash, isAdmin: false };
         saveUsers();
         writeData(username, defaultData);
-        res.json({ success: true, message: 'Account created' });
+        req.session.user = { username };
+        res.json({ success: true, message: 'Account created', isAdmin: false });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Registration failed' });
     }
