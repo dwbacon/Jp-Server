@@ -35,8 +35,22 @@
         function toggleDarkMode() { appData.settings.darkMode = !appData.settings.darkMode; applyDarkMode(appData.settings.darkMode); saveData(); renderView(); }
         
         // --- Authentication & App Lifecycle ---
-        async function checkAuthStatus() { try { const response = await fetch(`${API_BASE}/api/auth/status`, { credentials: 'include' }); const data = await response.json(); if (data.authenticated) { isAuthenticated = true; document.getElementById('user-info').textContent = `Welcome, ${data.username}`; showApp(); } else { isAuthenticated = false; showLogin(); } } catch (error) { showLogin(); } }
-        async function handleLogin(event) { event.preventDefault(); const username = document.getElementById('username').value; const password = document.getElementById('password').value; const submitBtn = document.getElementById('login-submit-btn'); const errorDiv = document.getElementById('login-error'); submitBtn.textContent = 'Logging in...'; submitBtn.disabled = true; errorDiv.style.display = 'none'; try { const response = await fetch(`${API_BASE}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ username, password }) }); const data = await response.json(); if (data.success) { isAuthenticated = true; document.getElementById('user-info').textContent = `Welcome, ${username}`; showDataStatus('Login successful!', false); showApp(); } else { errorDiv.textContent = data.message || 'Invalid credentials'; errorDiv.style.display = 'block'; } } catch (error) { errorDiv.textContent = 'Login failed. Please try again.'; errorDiv.style.display = 'block'; } finally { submitBtn.textContent = 'Login'; submitBtn.disabled = false; } }
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/status`, { credentials: 'include' });
+                const data = await response.json();
+                if (data.authenticated) {
+                    isAuthenticated = true;
+                    document.getElementById('user-info').textContent = `Welcome, ${data.username}`;
+                    showApp();
+                } else {
+                    isAuthenticated = false;
+                    showLogin();
+                }
+            } catch (error) {
+                showLogin();
+            }
+        }
 
         async function logout() {
             try {
@@ -53,8 +67,14 @@
 
         async function logout() { try { await fetch(`${API_BASE}/api/logout`, { method: 'POST', credentials: 'include' }); isAuthenticated = false; document.getElementById('user-info').textContent = ''; showDataStatus('Logged out', false); showLogin(); } catch (error) { console.error('Logout failed:', error); } }
 
-        function showLogin() { document.getElementById('login-page').style.display = 'block'; document.getElementById('app-content').style.display = 'none'; document.querySelector('.header-sticky-container').style.display = 'none'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('login-error').style.display = 'none'; }
-        function showApp() { document.getElementById('login-page').style.display = 'none'; document.getElementById('app-content').style.display = 'block'; document.querySelector('.header-sticky-container').style.display = 'block'; initializeApp(); }
+        function showLogin() {
+            window.location.href = 'login.html';
+        }
+        function showApp() {
+            document.getElementById('app-content').style.display = 'block';
+            document.querySelector('.header-sticky-container').style.display = 'block';
+            initializeApp();
+        }
         document.addEventListener('DOMContentLoaded', function() {
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
