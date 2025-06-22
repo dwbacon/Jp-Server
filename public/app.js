@@ -638,7 +638,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                     <h4>${editingCategory === 'new' ? 'Add New Category' : 'Edit Category'}</h4>
                     <div class="form-row mt-4">
                         <div class="form-group"><label class="form-label">Name</label><input type="text" id="category-name" class="form-input"></div>
-                        <div class="form-group"><label class="form-label">Color</label><input type="color" id="category-color" class="form-input" style="padding: 0.25rem;"></div>
+                        <div class="form-group"><label class="form-label">Color</label><input type="color" id="category-color" class="form-input" style="padding: 0.25rem; width: 3rem; height: 2.5rem;"></div>
                     </div>
                     <div class="flex gap-2">
                         <button class="btn btn-success" onclick="saveCategory('new')">Save</button>
@@ -657,7 +657,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                         </div>
                         <div id="category-edit-form-${cat.id}" style="display: ${editingCategory === cat.id ? 'block' : 'none'}; background-color: var(--background-color-dark); padding: 1rem; border-radius: var(--border-radius-medium);">
                             <h4>Edit Category</h4>
-                            <div class="form-row mt-4"><div class="form-group"><label class="form-label">Name</label><input type="text" id="category-name-${cat.id}" class="form-input" value="${cat.name}"></div><div class="form-group"><label class="form-label">Color</label><input type="color" id="category-color-${cat.id}" class="form-input" style="padding: 0.25rem;" value="${cat.color}"></div></div>
+                            <div class="form-row mt-4"><div class="form-group"><label class="form-label">Name</label><input type="text" id="category-name-${cat.id}" class="form-input" value="${cat.name}"></div><div class="form-group"><label class="form-label">Color</label><input type="color" id="category-color-${cat.id}" class="form-input" style="padding: 0.25rem; width: 3rem; height: 2.5rem;" value="${cat.color}"></div></div>
                             <div class="flex gap-2"><button class="btn btn-success" onclick="saveCategory('${cat.id}')">Save</button><button class="btn btn-secondary" onclick="cancelEditCategory()">Cancel</button></div>
                         </div>
                     `).join('')}</div>
