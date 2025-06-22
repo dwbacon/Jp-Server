@@ -140,8 +140,22 @@
         .btn-small { padding: 0.5rem 1rem; font-size: 0.875rem; }
         .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-color-secondary); font-size: 0.9rem; }
         .view-switcher { display: flex; gap: 0.5rem; background-color: var(--background-color-dark); padding: 0.25rem; border-radius: var(--border-radius-medium); }
-        .view-switcher .btn { flex: 1; padding: 0.5rem 1rem; border: none; background-color: transparent; }
-        .view-switcher .btn.active { background-color: var(--card-background); color: var(--primary-color); font-weight: 600; box-shadow: var(--shadow-subtle); }
+        .view-switcher .btn {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border: none;
+            background-color: transparent;
+            color: var(--text-color-secondary);
+            cursor: pointer;
+            transition: color var(--transition-speed) var(--transition-timing);
+        }
+        .view-switcher .btn:hover { color: var(--text-color-primary); }
+        .view-switcher .btn.active {
+            background-color: var(--card-background);
+            color: var(--primary-color);
+            font-weight: 600;
+            box-shadow: var(--shadow-subtle);
+        }
         
         /* --- Calendar --- */
         .calendar-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid var(--border-color); }
