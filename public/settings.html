@@ -89,7 +89,7 @@
         .nav-open #mobile-menu-btn .icon-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
         .nav-open #mobile-menu-btn .icon-bar:nth-child(2) { opacity: 0; }
         .nav-open #mobile-menu-btn .icon-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-        nav { padding-bottom: 0.5rem; }
+        nav { padding-bottom: 0.5rem; margin-bottom: 1rem; }
         .nav-container { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
         .nav-btn { padding: 0.75rem 1rem; font-size: 0.9rem; font-weight: 500; border-bottom: 3px solid transparent; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; color: var(--text-color-secondary); transition: all var(--transition-speed) var(--transition-timing); }
         .nav-btn:hover { color: var(--text-color-primary); background-color: var(--background-color-light); }
@@ -104,7 +104,11 @@
         .mobile-nav-links .nav-btn.active { color: var(--primary-color); }
 
         /* --- Main Content & View Transitions --- */
+
+        main { padding: 1.5rem 0; margin-top: 2rem; }
+
         main { padding: 1.5rem 0; margin-top: 1rem; }
+
         #app-content { transition: opacity var(--transition-speed) var(--transition-timing), transform var(--transition-speed) var(--transition-timing); }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeOutDown { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(20px); } }
