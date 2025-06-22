@@ -555,7 +555,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                         <div class="form-group"><label class="form-label">Color</label><input type="color" id="category-color" class="form-input" style="padding: 0.25rem;"></div>
                     </div>
                     <div class="flex gap-2">
-                        <button class="btn btn-success" onclick="saveCategory()">Save</button>
+                        <button class="btn btn-success" onclick="saveCategory('new')">Save</button>
                         <button class="btn btn-secondary" onclick="cancelEditCategory()">Cancel</button>
                     </div>
                 </div>`;
