@@ -150,7 +150,7 @@ app.post('/api/login', async (req, res) => {
         
         if (match) {
             req.session.user = { username: user.username };
-            return res.json({ success: true, message: 'Login successful' });
+            return res.json({ success: true, message: 'Login successful', isAdmin: !!user.isAdmin });
         }
     }
     // If user not found or password doesn't match
@@ -186,7 +186,8 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/auth/status', (req, res) => {
     if (req.session.user) {
-        res.json({ authenticated: true, username: req.session.user.username });
+        const user = users[req.session.user.username];
+        res.json({ authenticated: true, username: req.session.user.username, isAdmin: !!(user && user.isAdmin) });
     } else {
         res.json({ authenticated: false });
     }
