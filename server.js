@@ -198,6 +198,15 @@ app.get('/api/users', isAuthenticated, isAdmin, (req, res) => {
     res.json({ users: Object.keys(users) });
 });
 
+app.get('/api/users/:username/info', isAuthenticated, isAdmin, (req, res) => {
+    const target = req.params.username;
+    const user = users[target];
+    if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.json({ username: user.username, passwordHash: user.passwordHash, isAdmin: !!user.isAdmin });
+});
+
 app.post('/api/users/update', isAuthenticated, isAdmin, async (req, res) => {
     const { username, newUsername, newPassword } = req.body;
     const user = users[username];
@@ -218,6 +227,28 @@ app.post('/api/users/update', isAuthenticated, isAdmin, async (req, res) => {
         user.passwordHash = await bcrypt.hash(newPassword, saltRounds);
     }
     saveUsers();
+    res.json({ success: true });
+});
+
+app.post('/api/users/delete', isAuthenticated, isAdmin, (req, res) => {
+    const { username } = req.body;
+    const user = users[username];
+    if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const dataFile = getDataFile(username);
+    if (fs.existsSync(dataFile)) fs.unlinkSync(dataFile);
+    delete users[username];
+    saveUsers();
+    res.json({ success: true });
+});
+
+app.post('/api/admin/impersonate', isAuthenticated, isAdmin, (req, res) => {
+    const { username } = req.body;
+    if (!users[username]) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    req.session.user = { username };
     res.json({ success: true });
 });
 
