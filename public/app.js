@@ -223,6 +223,72 @@
             }
         }
 
+        // --- Custom Popup Functions ---
+        function ensurePopup() {
+            if (document.getElementById('popup-overlay')) return;
+            const style = document.createElement('style');
+            style.textContent = `
+                #popup-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); z-index: 3000; }
+                #popup-overlay.show { display: flex; }
+                #popup-box { background: var(--card-background, #fff); padding: 1rem; border-radius: var(--border-radius-small, 8px); box-shadow: 0 2px 8px rgba(0,0,0,0.3); max-width: 320px; width: 90%; }
+                #popup-buttons { margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem; }
+            `;
+            document.head.appendChild(style);
+            const overlay = document.createElement('div');
+            overlay.id = 'popup-overlay';
+            overlay.innerHTML = `
+                <div id="popup-box">
+                    <div id="popup-message"></div>
+                    <div id="popup-buttons">
+                        <button id="popup-ok" class="btn btn-primary">OK</button>
+                        <button id="popup-cancel" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+        }
+
+        function customAlert(message) {
+            ensurePopup();
+            return new Promise(resolve => {
+                const overlay = document.getElementById('popup-overlay');
+                const msg = document.getElementById('popup-message');
+                const ok = document.getElementById('popup-ok');
+                const cancel = document.getElementById('popup-cancel');
+                cancel.style.display = 'none';
+                msg.textContent = message;
+                overlay.classList.add('show');
+                const close = () => {
+                    overlay.classList.remove('show');
+                    ok.removeEventListener('click', close);
+                    resolve();
+                };
+                ok.addEventListener('click', close);
+            });
+        }
+
+        function customConfirm(message) {
+            ensurePopup();
+            return new Promise(resolve => {
+                const overlay = document.getElementById('popup-overlay');
+                const msg = document.getElementById('popup-message');
+                const ok = document.getElementById('popup-ok');
+                const cancel = document.getElementById('popup-cancel');
+                cancel.style.display = 'inline-block';
+                msg.textContent = message;
+                overlay.classList.add('show');
+                const cleanup = result => {
+                    overlay.classList.remove('show');
+                    ok.removeEventListener('click', onOk);
+                    cancel.removeEventListener('click', onCancel);
+                    resolve(result);
+                };
+                const onOk = () => cleanup(true);
+                const onCancel = () => cleanup(false);
+                ok.addEventListener('click', onOk);
+                cancel.addEventListener('click', onCancel);
+            });
+        }
+
         // --- Helper Functions ---
         function getCategoryById(id) { return appData.expenseCategories.find(c => c.id === id) || appData.expenseCategories.find(c => c.id === 'other'); }
         const incomeTypeLabels = { paycheck: 'Paycheck', tips_pay_period: 'Tips for Pay Period', tips_daily: 'Daily Tips' };
@@ -691,8 +757,8 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             return suggestions.slice(0, 6);
         }
         function toggleIncomeFormFields() { const type = document.getElementById('income-type')?.value; if (!type) return; const amountLabel = document.getElementById('income-amount-label'); const hoursGroup = document.getElementById('income-hours-group'); const taxesGroup = document.getElementById('income-taxes-group'); if (type.startsWith('tips')) { if(amountLabel) amountLabel.textContent = type === 'tips_daily' ? 'Daily Tips Amount ($)' : 'Total Tips for Pay Period ($)'; if(hoursGroup) hoursGroup.style.display = 'none'; if(taxesGroup) taxesGroup.style.display = 'none'; } else { if(amountLabel) amountLabel.textContent = 'Net Amount ($)'; if(hoursGroup) hoursGroup.style.display = 'block'; if(taxesGroup) taxesGroup.style.display = 'block'; } }
-        async function addIncome() { const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { alert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; appData.income.push({ id: Date.now(), type, amount: netAmount, hours, taxes, date }); appData.currentBalance += netAmount; await saveData(); document.getElementById('income-amount').value = ''; document.getElementById('income-hours').value = ''; document.getElementById('income-taxes').value = ''; document.getElementById('income-date').value = getCurrentDate(); document.getElementById('income-type').value = 'paycheck'; toggleIncomeFormFields(); renderView(); }
-        async function updateIncome() { if (!editingIncome) return; const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { alert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; const oldIncome = appData.income.find(inc => inc.id === editingIncome.id); const balanceDiff = netAmount - oldIncome.amount; appData.income = appData.income.map(inc => inc.id === editingIncome.id ? { ...editingIncome, type, amount: netAmount, hours, taxes, date } : inc); appData.currentBalance += balanceDiff; await saveData(); editingIncome = null; renderView(); }
+        async function addIncome() { const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { await customAlert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; appData.income.push({ id: Date.now(), type, amount: netAmount, hours, taxes, date }); appData.currentBalance += netAmount; await saveData(); document.getElementById('income-amount').value = ''; document.getElementById('income-hours').value = ''; document.getElementById('income-taxes').value = ''; document.getElementById('income-date').value = getCurrentDate(); document.getElementById('income-type').value = 'paycheck'; toggleIncomeFormFields(); renderView(); }
+        async function updateIncome() { if (!editingIncome) return; const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { await customAlert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; const oldIncome = appData.income.find(inc => inc.id === editingIncome.id); const balanceDiff = netAmount - oldIncome.amount; appData.income = appData.income.map(inc => inc.id === editingIncome.id ? { ...editingIncome, type, amount: netAmount, hours, taxes, date } : inc); appData.currentBalance += balanceDiff; await saveData(); editingIncome = null; renderView(); }
         function startEditIncome(id) { const income = appData.income.find(inc => inc.id === id); if (!income) return; editingIncome = income; renderView(); setTimeout(() => { document.getElementById('income-type').value = income.type; toggleIncomeFormFields(); document.getElementById('income-amount').value = income.amount; document.getElementById('income-date').value = income.date; if (income.type === 'paycheck') { document.getElementById('income-hours').value = income.hours || ''; document.getElementById('income-taxes').value = income.taxes || ''; } }, 0); }
         function cancelEditIncome() { editingIncome = null; renderView(); }
         async function deleteIncome(id) { const income = appData.income.find(inc => inc.id === id); if (!income) return; appData.income = appData.income.filter(inc => inc.id !== id); appData.currentBalance -= income.amount; await saveData(); renderView(); }
@@ -706,7 +772,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
         function handleDayDblClick(dateString) { selectDate(dateString); if (!showAddEvent) { toggleAddEventForm(); } }
         function toggleAddEventForm() { showAddEvent = !showAddEvent; if (!showAddEvent) { editingEvent = null; eventData = { date: '', endDate: '', startTime: '', endTime: '', type: 'work', description: '' }; } else { if (selectedDate) { eventData.date = new Date(selectedDate).toISOString().split('T')[0]; } } renderView(); }
         function toggleTimeInputs() { const type = document.getElementById('event-type')?.value; if (!type) return; const timeInputs = document.getElementById('work-time-inputs'); const vacationInputs = document.getElementById('vacation-period-inputs'); if (timeInputs) timeInputs.style.display = type === 'work' ? 'flex' : 'none'; if (vacationInputs) vacationInputs.style.display = (type === 'vacation' || type === 'sick') ? 'block' : 'none'; eventData.type = type; if (type !== 'vacation' && type !== 'sick') { eventData.endDate = ''; } }
-        async function saveEvent() { const date = document.getElementById('event-date')?.value; const type = document.getElementById('event-type')?.value; const startTime = document.getElementById('event-start-time')?.value || ''; const endTime = document.getElementById('event-end-time')?.value || ''; const endDate = document.getElementById('event-end-date')?.value || ''; if (!date || !type) return; if (type === 'work' && (!startTime || !endTime)) { alert('Work shifts require start and end times'); return; } if ((type === 'vacation' || type === 'sick') && endDate) { const startDateObj = new Date(date); const endDateObj = new Date(endDate); if (endDateObj < startDateObj) { alert('End date must be after start date'); return; } if (editingEvent) { appData.workShifts = appData.workShifts.filter(s => !(s.type === editingEvent.type && s.description === editingEvent.description && s.date >= editingEvent.date && s.date <= (editingEvent.endDate || editingEvent.date))); } const eventsToAdd = []; const currentDate = new Date(startDateObj); while (currentDate <= endDateObj) { const hours = calculateEventHours(startTime, endTime, type); eventsToAdd.push({ id: Date.now() + Math.random(), date: currentDate.toISOString().split('T')[0], startTime, endTime, hours, type, description: `Multi-day ${type}` }); currentDate.setDate(currentDate.getDate() + 1); } appData.workShifts = [...appData.workShifts, ...eventsToAdd]; } else { const hours = calculateEventHours(startTime, endTime, type); if (editingEvent) { appData.workShifts = appData.workShifts.map(event => event.id === editingEvent.id ? { ...editingEvent, date, startTime, endTime, hours, type, description: '' } : event); } else { appData.workShifts.push({ id: Date.now(), date, startTime, endTime, hours, type, description: '' }); } } await saveData(); showAddEvent = false; editingEvent = null; eventData = { date: '', endDate: '', startTime: '', endTime: '', type: 'work', description: '' }; renderView(); }
+        async function saveEvent() { const date = document.getElementById('event-date')?.value; const type = document.getElementById('event-type')?.value; const startTime = document.getElementById('event-start-time')?.value || ''; const endTime = document.getElementById('event-end-time')?.value || ''; const endDate = document.getElementById('event-end-date')?.value || ''; if (!date || !type) return; if (type === 'work' && (!startTime || !endTime)) { await customAlert('Work shifts require start and end times'); return; } if ((type === 'vacation' || type === 'sick') && endDate) { const startDateObj = new Date(date); const endDateObj = new Date(endDate); if (endDateObj < startDateObj) { await customAlert('End date must be after start date'); return; } if (editingEvent) { appData.workShifts = appData.workShifts.filter(s => !(s.type === editingEvent.type && s.description === editingEvent.description && s.date >= editingEvent.date && s.date <= (editingEvent.endDate || editingEvent.date))); } const eventsToAdd = []; const currentDate = new Date(startDateObj); while (currentDate <= endDateObj) { const hours = calculateEventHours(startTime, endTime, type); eventsToAdd.push({ id: Date.now() + Math.random(), date: currentDate.toISOString().split('T')[0], startTime, endTime, hours, type, description: `Multi-day ${type}` }); currentDate.setDate(currentDate.getDate() + 1); } appData.workShifts = [...appData.workShifts, ...eventsToAdd]; } else { const hours = calculateEventHours(startTime, endTime, type); if (editingEvent) { appData.workShifts = appData.workShifts.map(event => event.id === editingEvent.id ? { ...editingEvent, date, startTime, endTime, hours, type, description: '' } : event); } else { appData.workShifts.push({ id: Date.now(), date, startTime, endTime, hours, type, description: '' }); } } await saveData(); showAddEvent = false; editingEvent = null; eventData = { date: '', endDate: '', startTime: '', endTime: '', type: 'work', description: '' }; renderView(); }
         function cancelEventForm() { showAddEvent = false; editingEvent = null; eventData = { date: '', endDate: '', startTime: '', endTime: '', type: 'work', description: '' }; renderView(); }
         function selectDate(dateString) { selectedDate = dateString; if (showAddEvent) { eventData.date = new Date(dateString).toISOString().split('T')[0]; document.getElementById('event-date').value = eventData.date; } renderView(); }
         function editEvent(id) { const event = appData.workShifts.find(e => e.id === id); if (!event) return; editingEvent = event; eventData = { date: event.date, endDate: event.endDate || '', startTime: event.startTime || '', endTime: event.endTime || '', type: event.type, description: event.description || '' }; showAddEvent = true; renderView(); setTimeout(() => { document.getElementById('event-date').value = event.date; document.getElementById('event-type').value = event.type; if (event.startTime) document.getElementById('event-start-time').value = event.startTime; if (event.endTime) document.getElementById('event-end-time').value = event.endTime; if (event.endDate && document.getElementById('event-end-date')) { document.getElementById('event-end-date').value = event.endDate; } toggleTimeInputs(); }, 0); }
@@ -717,9 +783,9 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
         async function updateGoalAmount(value) { appData.goalAmount = value; await saveData(); }
         async function updateTargetDate(value) { appData.targetDate = value; await saveData(); }
         async function downloadBackup() { try { showDataStatus('Creating backup...', false, true); const response = await fetch(`${API_BASE}/api/backup`, { credentials: 'include' }); if (response.ok) { const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = response.headers.get('Content-Disposition').split('filename=')[1].replace(/"/g, ''); link.click(); URL.revokeObjectURL(url); showDataStatus('Backup downloaded!', false); } else { throw new Error('Backup failed'); } } catch (error) { showDataStatus('Backup failed', true); } }
-        async function restoreBackup(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = async function(e) { try { const backupData = JSON.parse(e.target.result); if (confirm('This will replace all your current data. Are you sure?')) { showDataStatus('Restoring backup...', false, true); const response = await fetch(`${API_BASE}/api/restore`, { method: 'POST', headers: { 'Content-Type': 'application/json', }, credentials: 'include', body: JSON.stringify(backupData) }); if (response.ok) { appData = { ...getDefaultData(), ...backupData }; renderView(); showDataStatus('Backup restored!', false); } else { throw new Error('Restore failed'); } } } catch (error) { showDataStatus('Invalid backup file', true); } }; reader.readAsText(file); event.target.value = ''; }
+        async function restoreBackup(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = async function(e) { try { const backupData = JSON.parse(e.target.result); if (await customConfirm('This will replace all your current data. Are you sure?')) { showDataStatus('Restoring backup...', false, true); const response = await fetch(`${API_BASE}/api/restore`, { method: 'POST', headers: { 'Content-Type': 'application/json', }, credentials: 'include', body: JSON.stringify(backupData) }); if (response.ok) { appData = { ...getDefaultData(), ...backupData }; renderView(); showDataStatus('Backup restored!', false); } else { throw new Error('Restore failed'); } } } catch (error) { showDataStatus('Invalid backup file', true); } }; reader.readAsText(file); event.target.value = ''; }
         async function clearAllData() {
-            if (!confirm('This will delete ALL your data and cannot be undone. Continue?')) return;
+            if (!await customConfirm('This will delete ALL your data and cannot be undone. Continue?')) return;
             try {
                 showDataStatus('Clearing data...', false, true);
                 const darkMode = appData.settings.darkMode;
@@ -742,11 +808,11 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             const colorInput = document.getElementById(isNew ? 'category-color' : `category-color-${id}`);
             const name = nameInput.value.trim();
             const color = colorInput.value;
-            if (!name) { alert("Category name cannot be empty."); return; }
+            if (!name) { await customAlert("Category name cannot be empty."); return; }
 
             if (isNew) {
                 const newId = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-                if (appData.expenseCategories.find(c => c.id === newId)) { alert("A category with this name already exists."); return; }
+                if (appData.expenseCategories.find(c => c.id === newId)) { await customAlert("A category with this name already exists."); return; }
                 appData.expenseCategories.push({ id: newId, name, color, icon: getDefaultData().expenseCategories.find(c=>c.id==='other').icon });
             } else {
                 const category = appData.expenseCategories.find(c => c.id === id);
@@ -757,8 +823,8 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             renderView();
         }
         async function deleteCategory(id) {
-            if (id === 'other') { alert("The 'Other' category cannot be deleted."); return; }
-            if (confirm(`Are you sure you want to delete this category? All existing expenses in this category will be moved to 'Other'.`)) {
+            if (id === 'other') { await customAlert("The 'Other' category cannot be deleted."); return; }
+            if (await customConfirm(`Are you sure you want to delete this category? All existing expenses in this category will be moved to 'Other'.`)) {
                 appData.expenses = appData.expenses.map(e => e.category === id ? { ...e, category: 'other' } : e);
                 appData.expenseCategories = appData.expenseCategories.filter(c => c.id !== id);
                 await saveData();
@@ -773,7 +839,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             const amount = parseFloat(document.getElementById('recurring-expense-amount').value);
             const category = document.getElementById('recurring-expense-category').value;
             const frequency = document.getElementById('recurring-expense-frequency').value;
-            if (!description || !amount || amount <= 0) { alert('Please fill out all fields.'); return; }
+            if (!description || !amount || amount <= 0) { await customAlert('Please fill out all fields.'); return; }
             
             const newBill = { id: `rec_${Date.now()}`, description, amount, category, frequency, nextDueDate: getCurrentDate() };
             appData.recurringExpenses.push(newBill);
@@ -798,7 +864,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             const amount = parseFloat(document.getElementById('recurring-expense-amount').value);
             const category = document.getElementById('recurring-expense-category').value;
             const frequency = document.getElementById('recurring-expense-frequency').value;
-            if (!description || !amount || amount <= 0) { alert('Please fill out all fields.'); return; }
+            if (!description || !amount || amount <= 0) { await customAlert('Please fill out all fields.'); return; }
 
             editingRecurringExpense.description = description;
             editingRecurringExpense.amount = amount;
@@ -812,7 +878,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             renderView();
         }
         async function deleteRecurringExpense(id) {
-            if(confirm('Are you sure you want to delete this recurring bill?')) {
+            if(await customConfirm('Are you sure you want to delete this recurring bill?')) {
                 appData.recurringExpenses = appData.recurringExpenses.filter(b => b.id !== id);
                 await saveData();
                 renderView();
