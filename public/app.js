@@ -37,6 +37,7 @@
         // --- Authentication & App Lifecycle ---
         async function checkAuthStatus() { try { const response = await fetch(`${API_BASE}/api/auth/status`, { credentials: 'include' }); const data = await response.json(); if (data.authenticated) { isAuthenticated = true; document.getElementById('user-info').textContent = `Welcome, ${data.username}`; showApp(); } else { isAuthenticated = false; showLogin(); } } catch (error) { showLogin(); } }
         async function handleLogin(event) { event.preventDefault(); const username = document.getElementById('username').value; const password = document.getElementById('password').value; const submitBtn = document.getElementById('login-submit-btn'); const errorDiv = document.getElementById('login-error'); submitBtn.textContent = 'Logging in...'; submitBtn.disabled = true; errorDiv.style.display = 'none'; try { const response = await fetch(`${API_BASE}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ username, password }) }); const data = await response.json(); if (data.success) { isAuthenticated = true; document.getElementById('user-info').textContent = `Welcome, ${username}`; showDataStatus('Login successful!', false); showApp(); } else { errorDiv.textContent = data.message || 'Invalid credentials'; errorDiv.style.display = 'block'; } } catch (error) { errorDiv.textContent = 'Login failed. Please try again.'; errorDiv.style.display = 'block'; } finally { submitBtn.textContent = 'Login'; submitBtn.disabled = false; } }
+
         async function logout() {
             try {
                 await fetch(`${API_BASE}/api/logout`, { method: 'POST', credentials: 'include' });
@@ -49,6 +50,9 @@
                 console.error('Logout failed:', error);
             }
         }
+
+        async function logout() { try { await fetch(`${API_BASE}/api/logout`, { method: 'POST', credentials: 'include' }); isAuthenticated = false; document.getElementById('user-info').textContent = ''; showDataStatus('Logged out', false); showLogin(); } catch (error) { console.error('Logout failed:', error); } }
+
         function showLogin() { document.getElementById('login-page').style.display = 'block'; document.getElementById('app-content').style.display = 'none'; document.querySelector('.header-sticky-container').style.display = 'none'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('login-error').style.display = 'none'; }
         function showApp() { document.getElementById('login-page').style.display = 'none'; document.getElementById('app-content').style.display = 'block'; document.querySelector('.header-sticky-container').style.display = 'block'; initializeApp(); }
         document.addEventListener('DOMContentLoaded', function() {
@@ -95,6 +99,7 @@
             });
         }
         setInterval(checkConnection, 10000);
+
         async function saveData() {
             if (!isOnline || !isAuthenticated) {
                 showDataStatus('Cannot save - offline or not authenticated', true);
@@ -165,6 +170,10 @@
                 return false;
             }
         }
+
+        async function saveData() { if (!isOnline || !isAuthenticated) { showDataStatus('Cannot save - offline or not authenticated', true); return false; } try { showDataStatus('Saving...', false, true); const response = await fetch(`${API_BASE}/api/data`, { method: 'POST', headers: { 'Content-Type': 'application/json', }, credentials: 'include', body: JSON.stringify(appData) }); if (response.status === 401) { showDataStatus('Session expired - please login again', true); showLogin(); return false; } if (response.ok) { showDataStatus('Saved!', false); return true; } else { throw new Error('Server error'); } } catch (error) { showDataStatus('Save failed', true); return false; } }
+        async function loadData() { if (!isAuthenticated) return false; try { showDataStatus('Loading...', false, true); const response = await fetch(`${API_BASE}/api/data`, { credentials: 'include' }); if (response.status === 401) { showDataStatus('Session expired - please login again', true); showLogin(); return false; } if (response.ok) { const serverData = await response.json(); const defaultData = getDefaultData(); appData = { ...defaultData, ...serverData, settings: { ...defaultData.settings, ...(serverData.settings || {}) }, expenseCategories: serverData.expenseCategories || defaultData.expenseCategories, recurringExpenses: serverData.recurringExpenses || [] }; showDataStatus('Loaded!', false); return true; } else { throw new Error('Server error'); } } catch (error) { showDataStatus('Load failed - using defaults', true); return false; } }
+
         function showDataStatus(message, isError = false, isLoading = false) {
             const statusElement = document.getElementById('data-status');
             statusElement.innerHTML = message;
