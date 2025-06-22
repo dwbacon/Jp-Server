@@ -25,21 +25,17 @@
             --border-radius-large: 16px;
             --border-radius-medium: 12px;
             --border-radius-small: 8px;
-            
             --shadow-soft: 0 4px 12px rgba(0,0,0,0.08);
             --shadow-subtle: 0 1px 3px rgba(0,0,0,0.04);
-            
             --transition-speed: 0.3s;
             --transition-timing: cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-
         body.dark-mode {
             --primary-color: #0a84ff;
             --primary-color-hover: #3b9bff;
             --success-color: #30d158;
             --danger-color: #ff453a;
             --warning-color: #ff9f0a;
-
             --background-color-light: #2c2c2e;
             --background-color-dark: #121212;
             --card-background: #1c1c1e;
@@ -47,14 +43,10 @@
             --text-color-primary: #f5f5f7;
             --text-color-secondary: #8e8e93;
             --text-color-tertiary: #a6a6a6;
-            
             --shadow-soft: 0 4px 12px rgba(0,0,0,0.3);
             --shadow-subtle: 0 1px 3px rgba(0,0,0,0.2);
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-
         body {
             font-family: var(--font-family);
             background-color: var(--background-color-dark);
@@ -63,10 +55,8 @@
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             transition: background-color var(--transition-speed), color var(--transition-speed);
-        }
         
         .container { max-width: 960px; margin: 0 auto; padding: 0 1rem; }
-        
         /* --- Header & Navigation --- */
         .header-sticky-container {
             position: sticky;
@@ -76,7 +66,6 @@
             box-shadow: var(--shadow-subtle);
             border-bottom: 1px solid var(--border-color);
             transition: background-color var(--transition-speed), border-color var(--transition-speed);
-        }
         header { padding: 1rem 0; }
         header .container { display: flex; justify-content: space-between; align-items: center; }
         header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
@@ -94,7 +83,6 @@
         .nav-btn { padding: 0.75rem 1rem; font-size: 0.9rem; font-weight: 500; border-bottom: 3px solid transparent; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; color: var(--text-color-secondary); transition: all var(--transition-speed) var(--transition-timing); }
         .nav-btn:hover { color: var(--text-color-primary); background-color: var(--background-color-light); }
         .nav-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
-        
         /* --- Mobile Navigation --- */
         #mobile-nav-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(20px); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; padding-top: 60px; opacity: 0; transition: opacity var(--transition-speed) var(--transition-timing); }
         body.dark-mode #mobile-nav-overlay { background: rgba(28,28,30,0.8); }
@@ -102,7 +90,6 @@
         .mobile-nav-links { display: flex; flex-direction: column; text-align: center; }
         .mobile-nav-links .nav-btn { font-size: 1.5rem; font-weight: 600; padding: 1rem; border-bottom: none; color: var(--text-color-secondary); }
         .mobile-nav-links .nav-btn.active { color: var(--primary-color); }
-
         /* --- Main Content & View Transitions --- */
         main { padding: 1.5rem 0; }
         #app-content { transition: opacity var(--transition-speed) var(--transition-timing), transform var(--transition-speed) var(--transition-timing); }
@@ -111,7 +98,6 @@
         #app-content.view-entering { animation: fadeInUp var(--transition-speed) var(--transition-timing) forwards; }
         #app-content.view-exiting { animation: fadeOutDown var(--transition-speed) var(--transition-timing) forwards; }
         .stagger-in > * { opacity: 0; transform: translateY(15px); animation: fadeInUp 0.4s var(--transition-timing) forwards; }
-
         /* --- Components --- */
         .card { background: var(--card-background); border-radius: var(--border-radius-large); box-shadow: var(--shadow-soft); padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color); transition: background-color var(--transition-speed), border-color var(--transition-speed); }
         .card h2 { font-size: 1.75rem; font-weight: 700; color: var(--text-color-primary); margin-bottom: 1rem; letter-spacing: -0.5px; }
@@ -148,15 +134,10 @@
             color: var(--text-color-secondary);
             cursor: pointer;
             transition: color var(--transition-speed) var(--transition-timing);
-        }
         .view-switcher .btn:hover { color: var(--text-color-primary); }
         .view-switcher .btn.active {
-            background-color: var(--card-background);
             color: var(--primary-color);
             font-weight: 600;
-            box-shadow: var(--shadow-subtle);
-        }
-        
         /* --- Calendar --- */
         .calendar-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid var(--border-color); }
         .calendar-week-day { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 0.5rem; }
@@ -179,7 +160,6 @@
         .event-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
         .event-income { background-color: #e1f5e8; color: #1f8a44; } .event-work { background-color: #e0f0ff; color: #0056b3; } .event-vacation { background-color: #f3e8ff; color: #6a00de; } .event-sick { background-color: #ffeaea; color: #c82121; }
         body.dark-mode .event-income { background-color: #0c2e17; color: #6ce98f; } body.dark-mode .event-work { background-color: #002c52; color: #8ecaff; } body.dark-mode .event-vacation { background-color: #3b007d; color: #e1c0ff; } body.dark-mode .event-sick { background-color: #5c0f0f; color: #ffb1ab; }
-
         /* --- Analytics Comparison --- */
         .comparison-grid { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 0.5rem 1rem; }
         .comparison-grid > div { padding: 0.5rem 0; }
@@ -191,29 +171,23 @@
         .diff-val.negative { color: #c82121; background-color: #ffeaea; }
         body.dark-mode .diff-val.positive { color: #6ce98f; background-color: #0c2e17; }
         body.dark-mode .diff-val.negative { color: #ffb1ab; background-color: #5c0f0f; }
-
-
         /* --- Utility & Helper Classes --- */
-
         .flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; } .gap-2 { gap: 0.5rem; } .gap-3 { gap: 0.75rem; } .gap-4 { gap: 1rem; }
-
         .flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; } .gap-2 { gap: 0.5rem; } .gap-4 { gap: 1rem; }
-
         .space-y-3 > * + * { margin-top: 0.75rem; } .space-y-6 > * + * { margin-top: 1.5rem; }
         .mt-4 { margin-top: 1rem; } .mb-4 { margin-bottom: 1rem; } .mb-2 { margin-bottom: 0.5rem; } .ml-2 { margin-left: 0.5rem; }
         .p-2 { padding: 0.5rem; } .p-4 { padding: 1rem; }
         .text-center { text-align: center; } .text-gray { color: var(--text-color-secondary); } .form-row { display: flex; gap: 1rem; } .form-row > * { flex: 1; }
         .graph-btn-container { display: flex; flex-wrap: wrap; gap: 0.5rem; } .graph-btn { flex-grow: 1; }
+        .settings-data-management { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0 0.5rem; }
+        .settings-data-management .btn { flex-grow: 1; }
         .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
-        
         /* --- Status Indicators --- */
         .data-status, .connection-status { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px); color: white; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-small); font-size: 0.9rem; font-weight: 500; z-index: 2000; opacity: 0; transition: all var(--transition-speed) var(--transition-timing); pointer-events: none; }
         .data-status.show, .connection-status.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .data-status.error, .connection-status { background: var(--danger-color); } .data-status.loading { background: var(--warning-color); }
-        
         /* --- Login Page --- */
         #login-page { animation: fadeInUp 0.5s ease-out; } #login-error { color: var(--danger-color); }
-        
         /* --- Responsive Design --- */
         @media (max-width: 768px) {
             .header-sticky-container { position: static; }
@@ -224,12 +198,9 @@
             .card { padding: 1rem; } .card h2 { font-size: 1.5rem; }
             .desktop-calendar { display: none; } .mobile-calendar { display: block; }
             .graph-btn-container { display: grid; grid-template-columns: 1fr 1fr; }
-            .settings-data-management { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0 0.5rem; }
-            .settings-data-management .btn { flex-grow: 1; }
             .grid-2 { grid-template-columns: 1fr; }
             .calendar-week-grid { display: block; border: none; }
             .calendar-week-day { border: none; border-bottom: 1px solid var(--border-color); }
-        }
     </style>
 </head>
 <body class="">
@@ -246,14 +217,11 @@
         </header>
         <nav><div class="container"><div class="nav-container"><a class="nav-btn" href="index.html" data-view="dashboard">Dashboard</a><a class="nav-btn" href="income.html" data-view="income">Income</a><a class="nav-btn active" href="expenses.html" data-view="expenses">Expenses</a><a class="nav-btn" href="calendar.html" data-view="calendar">Calendar</a><a class="nav-btn" href="analytics.html" data-view="analytics">Analytics</a><a class="nav-btn" href="suggestions.html" data-view="suggestions">Suggestions</a><a class="nav-btn" href="settings.html" data-view="settings">Settings</a></div></div></nav>
     </div>
-
     <div id="mobile-nav-overlay"><div class="mobile-nav-links"></div></div>
-
     <main class="container">
         <div id="login-page" class="card" style="max-width: 400px; margin: 2rem auto; display: none;"><h2 style="text-align: center; margin-bottom: 2rem;">🔒 Secure Access</h2><form id="login-form" onsubmit="handleLogin(event)"><div class="form-group"><label class="form-label">Username</label><input type="text" id="username" class="form-input" required></div><div class="form-group"><label class="form-label">Password</label><input type="password" id="password" class="form-input" required></div><button type="submit" class="btn btn-primary" style="width: 100%;" id="login-submit-btn">Login</button><div id="login-error" style="text-align: center; margin-top: 1rem; display: none;"></div></form></div>
         <div id="app-content" style="display: none;"><div class="card"><div class="text-center" style="padding: 2rem;"><p>Loading...</p></div></div></div>
     </main>
-
     <script>window.INIT_VIEW="expenses";</script>
     <script src="app.js"></script>
 </body>
