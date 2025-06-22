@@ -649,6 +649,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                 'Goal Focus': { icon: '🎯', color: 'var(--primary-color)', suggestions: suggestions.filter(s => s.category === 'goal') },
                 'Spending': { icon: '💸', color: 'var(--danger-color)', suggestions: suggestions.filter(s => s.category === 'spending') },
                 'Earning': { icon: '💰', color: 'var(--warning-color)', suggestions: suggestions.filter(s => s.category === 'earning') },
+                'Reminders': { icon: '🔔', color: 'var(--warning-color)', suggestions: suggestions.filter(s => s.category === 'reminder') },
                 'On Track': { icon: '✅', color: 'var(--success-color)', suggestions: suggestions.filter(s => s.category === 'ontrack') }
             };
 
@@ -813,8 +814,85 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             const estimatedWeeklyHours = appData.workShifts.filter(s => s.type === 'work').reduce((sum, s) => sum + (s.hours || 0), 0) / getWeeksOfData();
             if (estimatedWeeklyHours < 30 && avgHourlyNet > 0) { suggestions.push({ category: 'earning', title: `Opportunity to Increase Hours`, description: `You're currently averaging ${estimatedWeeklyHours.toFixed(1)} hours/week. Each additional shift could significantly boost your savings.`, actions: [`Ask your manager about available shifts.`, `An extra 5 hours per week could add ~$${(5 * avgHourlyNet * 4.33).toFixed(0)} to your monthly savings.`, `Consider picking up seasonal or holiday hours.`] }); }
             const bestDaysForTips = getBestTipDays();
-            if (bestDaysForTips.length > 0) { suggestions.push({ category: 'earning', title: `Maximize Your Tips on ${bestDaysForTips.join(' & ')}`, description: `Your data shows you earn the highest average tips on ${bestDaysForTips.join(' and ')}. Try to work more on these days!`, actions: [`Prioritize scheduling shifts on these high-earning days.`, `Share what works on these days with coworkers to boost everyone's tips.`, `Track if this trend continues over the next few weeks.`] }); }
-            return suggestions.slice(0, 6);
+            if (bestDaysForTips.length > 0) {
+                suggestions.push({
+                    category: 'earning',
+                    title: `Maximize Your Tips on ${bestDaysForTips.join(' & ')}`,
+                    description: `Your data shows you earn the highest average tips on ${bestDaysForTips.join(' and ')}. Try to work more on these days!`,
+                    actions: [
+                        `Prioritize scheduling shifts on these high-earning days.`,
+                        `Share what works on these days with coworkers to boost everyone's tips.`,
+                        `Track if this trend continues over the next few weeks.`
+                    ]
+                });
+            }
+
+            // Upcoming recurring bills
+            const upcomingBills = appData.recurringExpenses.filter(b => {
+                const due = parseLocalDate(b.nextDueDate);
+                const diff = (due - today) / (1000 * 60 * 60 * 24);
+                return diff >= 0 && diff <= 7;
+            });
+            if (upcomingBills.length > 0) {
+                suggestions.push({
+                    category: 'reminder',
+                    title: `${upcomingBills.length} Bill${upcomingBills.length > 1 ? 's' : ''} Due Soon`,
+                    description: `You have ${upcomingBills.length} recurring bill${upcomingBills.length > 1 ? 's' : ''} due within the next week.`,
+                    actions: [
+                        `Set aside funds for these payments.`,
+                        `Mark them paid once completed in Recurring Expenses.`
+                    ]
+                });
+            }
+
+            // Overspending warning
+            const currentMonth = getCurrentDate().slice(0, 7);
+            appData.expenseCategories.forEach(cat => {
+                const spentThisMonth = appData.expenses.filter(e => e.date.startsWith(currentMonth) && e.category === cat.id).reduce((s, e) => s + e.amount, 0);
+                const totalCatSpent = appData.expenses.filter(e => e.category === cat.id).reduce((s, e) => s + e.amount, 0);
+                const avgMonthly = totalCatSpent / durationMonths;
+                if (spentThisMonth > avgMonthly * 1.2 && spentThisMonth > 0) {
+                    suggestions.push({
+                        category: 'spending',
+                        title: `Heavy ${cat.name} Spending`,
+                        description: `You've spent $${spentThisMonth.toFixed(0)} on ${cat.name} this month, above your typical $${avgMonthly.toFixed(0)}/month.`,
+                        actions: [`Set a ${cat.name} budget for the rest of the month.`, `Look for ways to reduce upcoming costs.`]
+                    });
+                }
+            });
+
+            // Savings rate feedback
+            if (totalNetIncome > 0) {
+                const savingsRate = ((totalNetIncome - totalExpenses) / totalNetIncome) * 100;
+                if (savingsRate < 10) {
+                    suggestions.push({
+                        category: 'goal',
+                        title: `Low Savings Rate (${savingsRate.toFixed(0)}%)`,
+                        description: `Your savings rate is around ${savingsRate.toFixed(0)}%. Boost it to reach your goal faster.`,
+                        actions: [`Trim discretionary spending.`, `Set aside a fixed amount from each paycheck.`]
+                    });
+                } else if (savingsRate > 25) {
+                    suggestions.push({
+                        category: 'ontrack',
+                        title: `Excellent Savings Rate!`,
+                        description: `You're saving about ${savingsRate.toFixed(0)}% of your income. Keep it up!`,
+                        actions: [`Consider investing extra savings.`, `Treat yourself responsibly as a reward.`]
+                    });
+                }
+            }
+
+            // Progress milestone
+            const progress = (appData.currentBalance / appData.goalAmount) * 100;
+            if (progress >= 50 && progress < 100) {
+                suggestions.push({
+                    category: 'ontrack',
+                    title: progress >= 75 ? 'Three-Quarter Way There!' : 'Halfway to Goal!',
+                    description: `You've saved ${progress.toFixed(0)}% of your Japan fund goal.`,
+                    actions: [`Stay focused and keep saving.`, `Review your target date—maybe you can reach it sooner.`]
+                });
+            }
+
+            return suggestions;
         }
         function toggleIncomeFormFields() { const type = document.getElementById('income-type')?.value; if (!type) return; const amountLabel = document.getElementById('income-amount-label'); const hoursGroup = document.getElementById('income-hours-group'); const taxesGroup = document.getElementById('income-taxes-group'); if (type.startsWith('tips')) { if(amountLabel) amountLabel.textContent = type === 'tips_daily' ? 'Daily Tips Amount ($)' : 'Total Tips for Pay Period ($)'; if(hoursGroup) hoursGroup.style.display = 'none'; if(taxesGroup) taxesGroup.style.display = 'none'; } else { if(amountLabel) amountLabel.textContent = 'Net Amount ($)'; if(hoursGroup) hoursGroup.style.display = 'block'; if(taxesGroup) taxesGroup.style.display = 'block'; } }
         async function addIncome() { const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { await customAlert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; appData.income.push({ id: Date.now(), type, amount: netAmount, hours, taxes, date }); appData.currentBalance += netAmount; await saveData(); document.getElementById('income-amount').value = ''; document.getElementById('income-hours').value = ''; document.getElementById('income-taxes').value = ''; document.getElementById('income-date').value = getCurrentDate(); document.getElementById('income-type').value = 'paycheck'; toggleIncomeFormFields(); renderView(); }
