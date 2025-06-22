@@ -194,7 +194,11 @@
 
 
         /* --- Utility & Helper Classes --- */
+
+        .flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; } .gap-2 { gap: 0.5rem; } .gap-3 { gap: 0.75rem; } .gap-4 { gap: 1rem; }
+
         .flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; } .gap-2 { gap: 0.5rem; } .gap-4 { gap: 1rem; }
+
         .space-y-3 > * + * { margin-top: 0.75rem; } .space-y-6 > * + * { margin-top: 1.5rem; }
         .mt-4 { margin-top: 1rem; } .mb-4 { margin-bottom: 1rem; } .mb-2 { margin-bottom: 0.5rem; } .ml-2 { margin-left: 0.5rem; }
         .p-2 { padding: 0.5rem; } .p-4 { padding: 1rem; }
@@ -220,7 +224,7 @@
             .card { padding: 1rem; } .card h2 { font-size: 1.5rem; }
             .desktop-calendar { display: none; } .mobile-calendar { display: block; }
             .graph-btn-container { display: grid; grid-template-columns: 1fr 1fr; }
-            .settings-data-management { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+            .settings-data-management { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0 0.5rem; }
             .settings-data-management .btn { flex-grow: 1; }
             .grid-2 { grid-template-columns: 1fr; }
             .calendar-week-grid { display: block; border: none; }
@@ -703,7 +707,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                     <div class="space-y-2">${appData.expenseCategories.map(cat => `
                         <div id="category-item-${cat.id}" class="flex items-center justify-between p-2" style="display: ${editingCategory === cat.id ? 'none' : 'flex'}">
                             <div class="flex items-center gap-3"><div style="width:20px; height:20px; background-color:${cat.color}; border-radius:4px;"></div><span>${cat.name}</span></div>
-                            <div><button class="btn btn-small btn-secondary" onclick="startEditCategory('${cat.id}')">Edit</button><button class="btn btn-small btn-danger ml-2" onclick="deleteCategory('${cat.id}')">Del</button></div>
+                            <div class="flex gap-2"><button class="btn btn-small btn-secondary" onclick="startEditCategory('${cat.id}')">Edit</button><button class="btn btn-small btn-danger" onclick="deleteCategory('${cat.id}')">Del</button></div>
                         </div>
                         <div id="category-edit-form-${cat.id}" style="display: ${editingCategory === cat.id ? 'block' : 'none'}; background-color: var(--background-color-dark); padding: 1rem; border-radius: var(--border-radius-medium);">
                             <h4>Edit Category</h4>
