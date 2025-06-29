@@ -357,7 +357,34 @@
         function calculateEventHours(startTime, endTime, type) { if (type === 'vacation' || type === 'sick') return 8; if (!startTime || !endTime) return 0; const start = new Date(`2000-01-01T${startTime}`); const end = new Date(`2000-01-01T${endTime}`); return (end - start) / 3600000; }
         function getEventsForDate(date) { if (!date) return []; const dateStr = date.toISOString().split('T')[0]; const events = []; appData.income.filter(i => i.date === dateStr).forEach(i => events.push({ type: 'income', data: i, color: 'event-income', display: `$${i.amount.toFixed(0)}` })); appData.workShifts.filter(s => s.date === dateStr).forEach(s => { const colors = { work: 'event-work', vacation: 'event-vacation', sick: 'event-sick' }; const display = { work: s.startTime && s.endTime ? `${formatTime12h(s.startTime)}-${formatTime12h(s.endTime)}` : 'Work', vacation: 'Vacation', sick: 'Sick Day' }; events.push({ type: 'event', data: s, color: colors[s.type] || colors.work, display: display[s.type] || 'Event' }); }); return events; }
         function getNextPayPeriod() { const lastPayDate = parseLocalDate(appData.settings.lastPayDate); const today = new Date(); today.setHours(0, 0, 0, 0); let daysInPeriod = appData.settings.paySchedule === 'weekly' ? 7 : appData.settings.paySchedule === 'monthly' ? 30 : 14; let nextPayDate = new Date(lastPayDate.getTime()); while (nextPayDate <= today) { nextPayDate.setDate(nextPayDate.getDate() + daysInPeriod); } const periodStart = new Date(nextPayDate.getTime()); periodStart.setDate(periodStart.getDate() - daysInPeriod); const periodEnd = new Date(nextPayDate.getTime()); periodEnd.setDate(periodEnd.getDate() - 1); return { start: periodStart, end: periodEnd, nextPayDate: nextPayDate, daysInPeriod: daysInPeriod }; }
-        function getEstimatedPayForPeriod(startDate, endDate) { const shiftsInPeriod = appData.workShifts.filter(s => { const d = new Date(s.date); return d >= startDate && d <= endDate && s.type === 'work'; }); const totalHours = shiftsInPeriod.reduce((sum, s) => sum + (s.hours || 0), 0); const gross = totalHours * appData.settings.hourlyRate; const taxes = gross * appData.settings.taxRate; return { hours: totalHours, gross, taxes, net: gross - taxes, shifts: shiftsInPeriod.length }; }
+        function getEstimatedPayForPeriod(startDate, endDate) {
+            const shiftsInPeriod = appData.workShifts.filter(s => {
+                const d = new Date(s.date);
+                return d >= startDate && d <= endDate && s.type === 'work';
+            });
+            const totalHours = shiftsInPeriod.reduce((sum, s) => sum + (s.hours || 0), 0);
+
+            const tipsInPeriod = appData.income
+                .filter(i => (i.type === 'tips_daily' || i.type === 'tips_pay_period'))
+                .filter(i => {
+                    const d = parseLocalDate(i.date);
+                    return d >= startDate && d <= endDate;
+                })
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const wageGross = totalHours * appData.settings.hourlyRate;
+            const taxes = wageGross * appData.settings.taxRate;
+            const gross = wageGross + tipsInPeriod;
+            const net = gross - taxes;
+
+            return {
+                hours: totalHours,
+                gross,
+                taxes,
+                net,
+                shifts: shiftsInPeriod.length
+            };
+        }
         function getCurrentPayPeriodEstimate() { const period = getNextPayPeriod(); const estimate = getEstimatedPayForPeriod(period.start, period.end); return { ...estimate, period, periodType: appData.settings.paySchedule }; }
         function getDaysInMonth(date) { const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const lastDay = new Date(year, month + 1, 0); const daysInMonth = lastDay.getDate(); const startingDayOfWeek = firstDay.getDay(); const days = []; for (let i = 0; i < startingDayOfWeek; i++) { days.push(null); } for (let day = 1; day <= daysInMonth; day++) { days.push(new Date(year, month, day)); } return days; }
         function isToday(date) { if (!date) return false; return date.toDateString() === new Date().toDateString(); }
@@ -369,6 +396,8 @@
         function renderDashboard() {
             const progress = (appData.currentBalance / appData.goalAmount) * 100;
             const remaining = appData.goalAmount - appData.currentBalance;
+            const totalSaved = appData.income.reduce((s, i) => s + i.amount, 0) -
+                appData.expenses.reduce((s, e) => s + e.amount, 0);
             const today = new Date(getCurrentDate());
             const target = new Date(appData.targetDate);
             const daysRemaining = Math.max(0, Math.ceil((target - today) / 3600000 / 24));
@@ -390,6 +419,10 @@
                         </div>
                         <div class="text-center" style="margin-top: 1rem; font-size: 1.125rem; font-weight: 600;">${progress.toFixed(1)}% Complete</div>
                     </div>
+                </div>
+                <div class="card stagger-in" style="animation-delay: 75ms;">
+                    <h3>Total Saved</h3>
+                    <div class="text-center" style="font-size: 1.5rem; font-weight: 700;">$${totalSaved.toLocaleString()}</div>
                 </div>
                 <div class="grid-2">
                     <div class="card stagger-in" style="animation-delay: 100ms;">
@@ -473,6 +506,7 @@
             const paycheckTaxesTotal = paycheckIncome.reduce((s, i) => s + i.taxes, 0);
             const paycheckGrossTotal = paycheckNetTotal + paycheckTaxesTotal;
             const effectiveTaxRate = paycheckGrossTotal > 0 ? (paycheckTaxesTotal / paycheckGrossTotal) * 100 : 0;
+            const totalTips = appData.income.filter(i => i.type.startsWith('tips')).reduce((s, i) => s + i.amount, 0);
             let displayedIncome = [...appData.income].sort((a,b) => parseLocalDate(b.date) - parseLocalDate(a.date));
             if (!showAllIncomeHistory) {
                 const threeDaysAgo = new Date();
@@ -490,10 +524,14 @@
                         <div class="flex gap-4">${editingIncome ? `<button onclick="updateIncome()" class="btn btn-success" style="flex: 1;">Update Income</button><button onclick="cancelEditIncome()" class="btn btn-secondary" style="flex: 1;">Cancel</button>` : `<button onclick="addIncome()" class="btn btn-primary" style="flex: 1;">Add Income</button>`}</div>
                     </div>
                 </div>
-                <div class="card"><h3>Stats</h3><div class="stats-grid"><div class="stat-card"><div class="stat-number" style="color:var(--primary-color)">$${totalGrossIncome.toFixed(0)}</div><div class="stat-label">Gross Income</div></div><div class="stat-card"><div class="stat-number" style="color:var(--danger-color)">$${totalTaxes.toFixed(0)}</div><div class="stat-label">Taxes Paid</div></div><div class="stat-card"><div class="stat-number" style="color:var(--success-color)">$${totalNetIncome.toFixed(0)}</div><div class="stat-label">Net Income</div></div><div class="stat-card"><div class="stat-number" style="color:var(--warning-color)">$${avgGrossRate.toFixed(2)}</div><div class="stat-label">Avg Gross Rate</div></div><div class="stat-card"><div class="stat-number" style="color:var(--danger-color)">${effectiveTaxRate.toFixed(1)}%</div><div class="stat-label">Effective Tax Rate</div></div></div></div>
+                <div class="card"><h3>Stats</h3><div class="stats-grid"><div class="stat-card"><div class="stat-number" style="color:var(--primary-color)">$${totalGrossIncome.toFixed(0)}</div><div class="stat-label">Gross Income</div></div><div class="stat-card"><div class="stat-number" style="color:var(--danger-color)">$${totalTaxes.toFixed(0)}</div><div class="stat-label">Taxes Paid</div></div><div class="stat-card"><div class="stat-number" style="color:var(--success-color)">$${totalNetIncome.toFixed(0)}</div><div class="stat-label">Net Income</div></div><div class="stat-card"><div class="stat-number" style="color:var(--warning-color)">$${avgGrossRate.toFixed(2)}</div><div class="stat-label">Avg Gross Rate</div></div><div class="stat-card"><div class="stat-number" style="color:var(--danger-color)">${effectiveTaxRate.toFixed(1)}%</div><div class="stat-label">Effective Tax Rate</div></div><div class='stat-card'><div class='stat-number' style='color:var(--primary-color)'>$${totalTips.toFixed(0)}</div><div class='stat-label'>Total Tips</div></div></div></div>
                 <div class="card">
                     <div class="flex justify-between items-center mb-4"><h3 style="margin:0;">Recent Income</h3>${appData.income.length > 0 ? `<button class="btn btn-secondary btn-small" onclick="toggleIncomeHistory()">${showAllIncomeHistory ? 'Show Recent' : 'View Full History'}</button>`: ''}</div>
+
                     ${displayedIncome.length === 0 ? `<p class="text-gray">${showAllIncomeHistory ? 'No income logged yet.' : 'No income in the last 3 days.'}</p>` : `<div class="space-y-3 stagger-in">${displayedIncome.map((income, i) => { const displayAmount = `$${income.amount.toFixed(2)}`; const detailLine = income.type === 'paycheck' ? `${income.hours}h • $${((income.amount + (income.taxes || 0)) / (income.hours || 1)).toFixed(2)}/hr gross • ${new Date(income.date).toLocaleDateString()}` : (income.type.startsWith('tips') ? `Tips • ${new Date(income.date).toLocaleDateString()}` : `Side Gig • ${new Date(income.date).toLocaleDateString()}`); return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color: var(--background-color-light); animation-delay: ${i * 50}ms;"><div style="flex: 1;"><div style="font-weight: 500;">${getIncomeTypeLabel(income.type)} - ${displayAmount}</div><div class="text-sm text-gray">${detailLine}</div></div><div class="flex gap-2"><button onclick="startEditIncome(${income.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${income.id})" class="btn btn-small btn-danger">Delete</button></div></div>`; }).join('')}</div>`}
+
+                    ${displayedIncome.length === 0 ? `<p class="text-gray">${showAllIncomeHistory ? 'No income logged yet.' : 'No income in the last 3 days.'}</p>` : `<div class="space-y-3 stagger-in">${displayedIncome.map((income, i) => { const displayAmount = `$${income.amount.toFixed(2)}`; const detailLine = income.type === 'paycheck' ? `${income.hours}h • $${((income.amount + (income.taxes || 0)) / (income.hours || 1)).toFixed(2)}/hr gross • ${new Date(income.date).toLocaleDateString()}` : `Tips • ${new Date(income.date).toLocaleDateString()}`; return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color: var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div style="flex: 1;"><div style="font-weight: 500;">${getIncomeTypeLabel(income.type)} - ${displayAmount}</div><div class="text-sm text-gray">${detailLine}</div></div><div class="flex gap-2"><button onclick="startEditIncome(${income.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${income.id})" class="btn btn-small btn-danger">Delete</button></div></div>`; }).join('')}</div>`}
+
                 </div>
             </div>`;
         }
@@ -508,7 +546,7 @@
                 ${recurringExpenseForm}
                 ${appData.recurringExpenses.length === 0 ? `<p class="text-gray">No recurring bills set up yet.</p>` : `<div class="space-y-3">${appData.recurringExpenses.map(bill => { const cat = getCategoryById(bill.category); return `<div class="flex items-center justify-between" style="padding:0.75rem; border-radius:var(--border-radius-medium); background-color:var(--background-color-light);"><div class="flex items-center gap-4"><div style="color: ${cat.color};">${cat.icon}</div><div><div style="font-weight:500;">${bill.description}</div><div class="text-sm text-gray">$${bill.amount.toFixed(2)} / ${bill.frequency.replace('-',' ')} • Next: ${new Date(bill.nextDueDate).toLocaleDateString()}</div></div></div><div class="flex gap-2"><button onclick="startEditRecurringExpense('${bill.id}')" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteRecurringExpense('${bill.id}')" class="btn btn-small btn-danger">Delete</button></div></div>`; }).join('')}</div>`}
             </div>
-            <div class="card"><h3>🧾 Recent Expenses</h3>${recentExpenses.length === 0 ? `<p class="text-gray">No expenses logged yet</p>` : `<div class="space-y-3 stagger-in">${recentExpenses.map((expense, i) => { const cat = getCategoryById(expense.category); return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color:var(--background-color-light); animation-delay: ${i * 50}ms;"><div class="flex items-center gap-4" style="flex: 1;"><div style="color: ${cat.color}; background-color: ${cat.color}20; padding: 0.5rem; border-radius: var(--border-radius-small); display:flex; align-items:center;">${cat.icon}</div><div><div style="font-weight: 500;">${expense.description}</div><div class="text-sm" style="color: var(--text-color-secondary);">${cat.name} • ${new Date(expense.date).toLocaleDateString()}</div></div></div><div class="flex items-center gap-4"><div style="font-weight: 600; font-size: 1.125rem; color: var(--danger-color);">-
+            <div class="card"><h3>🧾 Recent Expenses</h3>${recentExpenses.length === 0 ? `<p class="text-gray">No expenses logged yet</p>` : `<div class="space-y-3 stagger-in">${recentExpenses.map((expense, i) => { const cat = getCategoryById(expense.category); return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color:var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div class="flex items-center gap-4" style="flex: 1;"><div style="color: ${cat.color}; background-color: ${cat.color}20; padding: 0.5rem; border-radius: var(--border-radius-small); display:flex; align-items:center;">${cat.icon}</div><div><div style="font-weight: 500;">${expense.description}</div><div class="text-sm" style="color: var(--text-color-secondary);">${cat.name} • ${new Date(expense.date).toLocaleDateString()}</div></div></div><div class="flex items-center gap-4"><div style="font-weight: 600; font-size: 1.125rem; color: var(--danger-color);">-
 $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="startEditExpense(${expense.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteExpense(${expense.id})" class="btn btn-small btn-danger">Delete</button></div></div></div>`; }).join('')}</div>`}</div></div>`;
         }
         function renderCalendar() {

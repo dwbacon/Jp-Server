@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Create Account</title>
     <style>
         :root {
@@ -51,6 +52,7 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { background-color: var(--background-color-dark); }
         body {
             font-family: var(--font-family);
             background-color: var(--background-color-dark);
@@ -122,6 +124,15 @@
         #popup-overlay.show { display: flex; }
         #popup-box { background: var(--card-background); padding: 1rem; border-radius: var(--border-radius-small); box-shadow: var(--shadow-soft); max-width: 320px; width: 90%; color: var(--text-color-primary); }
         #popup-buttons { margin-top: 1rem; text-align: right; }
+
+        @media (max-width: 600px) {
+            body { padding: 0; display: block; }
+            .card {
+                max-width: none;
+                min-height: 100vh;
+                border-radius: 0;
+            }
+        }
     </style>
 </head>
 <body>
