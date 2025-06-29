@@ -369,6 +369,8 @@
         function renderDashboard() {
             const progress = (appData.currentBalance / appData.goalAmount) * 100;
             const remaining = appData.goalAmount - appData.currentBalance;
+            const totalSaved = appData.income.reduce((s, i) => s + i.amount, 0) -
+                appData.expenses.reduce((s, e) => s + e.amount, 0);
             const today = new Date(getCurrentDate());
             const target = new Date(appData.targetDate);
             const daysRemaining = Math.max(0, Math.ceil((target - today) / 3600000 / 24));
@@ -390,6 +392,10 @@
                         </div>
                         <div class="text-center" style="margin-top: 1rem; font-size: 1.125rem; font-weight: 600;">${progress.toFixed(1)}% Complete</div>
                     </div>
+                </div>
+                <div class="card stagger-in" style="animation-delay: 75ms;">
+                    <h3>Total Saved</h3>
+                    <div class="text-center" style="font-size: 1.5rem; font-weight: 700;">$${totalSaved.toLocaleString()}</div>
                 </div>
                 <div class="grid-2">
                     <div class="card stagger-in" style="animation-delay: 100ms;">
