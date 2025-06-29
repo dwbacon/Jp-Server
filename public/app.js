@@ -379,6 +379,7 @@
 
             return {
                 hours: totalHours,
+                tips: tipsInPeriod,
                 gross,
                 taxes,
                 net,
@@ -438,6 +439,7 @@
                     <h3>Est. Pay This ${payPeriodTitle}</h3>
                     <div class="stats-grid">
                         <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">${biWeeklyEstimate.hours.toFixed(1)}h</div><div class="stat-label">Scheduled</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">$${biWeeklyEstimate.tips.toFixed(0)}</div><div class="stat-label">Tips</div></div>
                         <div class="stat-card"><div class="stat-number" style="color: var(--success-color);">$${biWeeklyEstimate.gross.toFixed(0)}</div><div class="stat-label">Gross</div></div>
                         <div class="stat-card"><div class="stat-number" style="color: var(--danger-color);">$${biWeeklyEstimate.taxes.toFixed(0)}</div><div class="stat-label">Taxes</div></div>
                         <div class="stat-card"><div class="stat-number" style="color: var(--warning-color);">$${biWeeklyEstimate.net.toFixed(0)}</div><div class="stat-label">Net</div></div>
