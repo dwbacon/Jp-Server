@@ -357,7 +357,34 @@
         function calculateEventHours(startTime, endTime, type) { if (type === 'vacation' || type === 'sick') return 8; if (!startTime || !endTime) return 0; const start = new Date(`2000-01-01T${startTime}`); const end = new Date(`2000-01-01T${endTime}`); return (end - start) / 3600000; }
         function getEventsForDate(date) { if (!date) return []; const dateStr = date.toISOString().split('T')[0]; const events = []; appData.income.filter(i => i.date === dateStr).forEach(i => events.push({ type: 'income', data: i, color: 'event-income', display: `$${i.amount.toFixed(0)}` })); appData.workShifts.filter(s => s.date === dateStr).forEach(s => { const colors = { work: 'event-work', vacation: 'event-vacation', sick: 'event-sick' }; const display = { work: s.startTime && s.endTime ? `${formatTime12h(s.startTime)}-${formatTime12h(s.endTime)}` : 'Work', vacation: 'Vacation', sick: 'Sick Day' }; events.push({ type: 'event', data: s, color: colors[s.type] || colors.work, display: display[s.type] || 'Event' }); }); return events; }
         function getNextPayPeriod() { const lastPayDate = parseLocalDate(appData.settings.lastPayDate); const today = new Date(); today.setHours(0, 0, 0, 0); let daysInPeriod = appData.settings.paySchedule === 'weekly' ? 7 : appData.settings.paySchedule === 'monthly' ? 30 : 14; let nextPayDate = new Date(lastPayDate.getTime()); while (nextPayDate <= today) { nextPayDate.setDate(nextPayDate.getDate() + daysInPeriod); } const periodStart = new Date(nextPayDate.getTime()); periodStart.setDate(periodStart.getDate() - daysInPeriod); const periodEnd = new Date(nextPayDate.getTime()); periodEnd.setDate(periodEnd.getDate() - 1); return { start: periodStart, end: periodEnd, nextPayDate: nextPayDate, daysInPeriod: daysInPeriod }; }
-        function getEstimatedPayForPeriod(startDate, endDate) { const shiftsInPeriod = appData.workShifts.filter(s => { const d = new Date(s.date); return d >= startDate && d <= endDate && s.type === 'work'; }); const totalHours = shiftsInPeriod.reduce((sum, s) => sum + (s.hours || 0), 0); const gross = totalHours * appData.settings.hourlyRate; const taxes = gross * appData.settings.taxRate; return { hours: totalHours, gross, taxes, net: gross - taxes, shifts: shiftsInPeriod.length }; }
+        function getEstimatedPayForPeriod(startDate, endDate) {
+            const shiftsInPeriod = appData.workShifts.filter(s => {
+                const d = new Date(s.date);
+                return d >= startDate && d <= endDate && s.type === 'work';
+            });
+            const totalHours = shiftsInPeriod.reduce((sum, s) => sum + (s.hours || 0), 0);
+
+            const tipsInPeriod = appData.income
+                .filter(i => (i.type === 'tips_daily' || i.type === 'tips_pay_period'))
+                .filter(i => {
+                    const d = parseLocalDate(i.date);
+                    return d >= startDate && d <= endDate;
+                })
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const wageGross = totalHours * appData.settings.hourlyRate;
+            const taxes = wageGross * appData.settings.taxRate;
+            const gross = wageGross + tipsInPeriod;
+            const net = gross - taxes;
+
+            return {
+                hours: totalHours,
+                gross,
+                taxes,
+                net,
+                shifts: shiftsInPeriod.length
+            };
+        }
         function getCurrentPayPeriodEstimate() { const period = getNextPayPeriod(); const estimate = getEstimatedPayForPeriod(period.start, period.end); return { ...estimate, period, periodType: appData.settings.paySchedule }; }
         function getDaysInMonth(date) { const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const lastDay = new Date(year, month + 1, 0); const daysInMonth = lastDay.getDate(); const startingDayOfWeek = firstDay.getDay(); const days = []; for (let i = 0; i < startingDayOfWeek; i++) { days.push(null); } for (let day = 1; day <= daysInMonth; day++) { days.push(new Date(year, month, day)); } return days; }
         function isToday(date) { if (!date) return false; return date.toDateString() === new Date().toDateString(); }
