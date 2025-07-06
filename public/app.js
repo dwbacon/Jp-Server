@@ -454,8 +454,9 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
             const periodType = avgDays === 7 ? 'weekly' : avgDays === 30 ? 'monthly' : 'bi-weekly';
 
             return { hours: avgHours, tips: avgTips, gross, taxes: avgTaxes, net, period: { start: periodStart, end: periodEnd }, periodType };
+        }
 
-function getCurrentPayPeriodEstimate() {
+        function getCurrentPayPeriodEstimate() {
             const period = getNextPayPeriod();
             const estimate = getEstimatedPayForPeriod(period.start, period.end, true);
             return { ...estimate, period, periodType: appData.settings.paySchedule };
