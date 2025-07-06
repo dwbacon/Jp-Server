@@ -357,7 +357,7 @@
         function calculateEventHours(startTime, endTime, type) { if (type === 'vacation' || type === 'sick') return 8; if (!startTime || !endTime) return 0; const start = new Date(`2000-01-01T${startTime}`); const end = new Date(`2000-01-01T${endTime}`); return (end - start) / 3600000; }
         function getEventsForDate(date) { if (!date) return []; const dateStr = date.toISOString().split('T')[0]; const events = []; appData.income.filter(i => i.date === dateStr).forEach(i => events.push({ type: 'income', data: i, color: 'event-income', display: `$${i.amount.toFixed(0)}` })); appData.workShifts.filter(s => s.date === dateStr).forEach(s => { const colors = { work: 'event-work', vacation: 'event-vacation', sick: 'event-sick' }; const display = { work: s.startTime && s.endTime ? `${formatTime12h(s.startTime)}-${formatTime12h(s.endTime)}` : 'Work', vacation: 'Vacation', sick: 'Sick Day' }; events.push({ type: 'event', data: s, color: colors[s.type] || colors.work, display: display[s.type] || 'Event' }); }); return events; }
         function getNextPayPeriod() { const lastPayDate = parseLocalDate(appData.settings.lastPayDate); const today = new Date(); today.setHours(0, 0, 0, 0); let daysInPeriod = appData.settings.paySchedule === 'weekly' ? 7 : appData.settings.paySchedule === 'monthly' ? 30 : 14; let nextPayDate = new Date(lastPayDate.getTime()); while (nextPayDate <= today) { nextPayDate.setDate(nextPayDate.getDate() + daysInPeriod); } const periodStart = new Date(nextPayDate.getTime()); periodStart.setDate(periodStart.getDate() - daysInPeriod); const periodEnd = new Date(nextPayDate.getTime()); periodEnd.setDate(periodEnd.getDate() - 1); return { start: periodStart, end: periodEnd, nextPayDate: nextPayDate, daysInPeriod: daysInPeriod }; }
-        function getEstimatedPayForPeriod(startDate, endDate) {
+function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
             const shiftsInPeriod = appData.workShifts.filter(s => {
                 const d = new Date(s.date);
                 return d >= startDate && d <= endDate && s.type === 'work';
@@ -372,21 +372,68 @@
                 })
                 .reduce((sum, t) => sum + t.amount, 0);
 
+            let predictedTips = 0;
+            if (predict) {
+                const avgTips = getAverageTipsPerPayPeriod();
+                if (avgTips > tipsInPeriod) {
+                    predictedTips = avgTips - tipsInPeriod;
+                }
+            }
+
             const wageGross = totalHours * appData.settings.hourlyRate;
             const taxes = wageGross * appData.settings.taxRate;
-            const gross = wageGross + tipsInPeriod;
+            const gross = wageGross + tipsInPeriod + predictedTips;
             const net = gross - taxes;
 
             return {
                 hours: totalHours,
-                tips: tipsInPeriod,
+                tips: tipsInPeriod + predictedTips,
                 gross,
                 taxes,
                 net,
-                shifts: shiftsInPeriod.length
+                shifts: shiftsInPeriod.length,
+                predictedTips
             };
         }
-        function getCurrentPayPeriodEstimate() { const period = getNextPayPeriod(); const estimate = getEstimatedPayForPeriod(period.start, period.end); return { ...estimate, period, periodType: appData.settings.paySchedule }; }
+function getCurrentPayPeriodEstimate() {
+            const period = getNextPayPeriod();
+            const estimate = getEstimatedPayForPeriod(period.start, period.end, true);
+            return { ...estimate, period, periodType: appData.settings.paySchedule };
+        }
+
+        function getAverageTipsPerPayPeriod() {
+            const tipsByPeriod = {};
+            appData.income.filter(i => i.type === 'tips_pay_period' || i.type === 'tips_daily')
+                .forEach(t => {
+                    const period = getPayPeriodForDate(parseLocalDate(t.date));
+                    const key = period.start.toISOString();
+                    tipsByPeriod[key] = (tipsByPeriod[key] || 0) + t.amount;
+                });
+            const totals = Object.values(tipsByPeriod);
+            if (totals.length === 0) return 0;
+            return totals.reduce((a, b) => a + b, 0) / totals.length;
+        }
+
+        function getAveragePaycheckAmount() {
+            const paychecks = appData.income.filter(i => i.type === 'paycheck');
+            if (paychecks.length === 0) return 0;
+            return paychecks.reduce((s, p) => s + p.amount, 0) / paychecks.length;
+        }
+
+        function getPayPeriodForDate(date) {
+            const daysInPeriod = appData.settings.paySchedule === 'weekly' ? 7 :
+                appData.settings.paySchedule === 'monthly' ? 30 : 14;
+            let nextPayDate = parseLocalDate(appData.settings.lastPayDate);
+            while (date >= nextPayDate) {
+                nextPayDate.setDate(nextPayDate.getDate() + daysInPeriod);
+            }
+            while (date < new Date(nextPayDate.getTime() - daysInPeriod * 86400000)) {
+                nextPayDate.setDate(nextPayDate.getDate() - daysInPeriod);
+            }
+            const periodStart = new Date(nextPayDate.getTime() - daysInPeriod * 86400000);
+            const periodEnd = new Date(nextPayDate.getTime() - 86400000);
+            return { start: periodStart, end: periodEnd };
+        }
         function getDaysInMonth(date) { const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const lastDay = new Date(year, month + 1, 0); const daysInMonth = lastDay.getDate(); const startingDayOfWeek = firstDay.getDay(); const days = []; for (let i = 0; i < startingDayOfWeek; i++) { days.push(null); } for (let day = 1; day <= daysInMonth; day++) { days.push(new Date(year, month, day)); } return days; }
         function isToday(date) { if (!date) return false; return date.toDateString() === new Date().toDateString(); }
         function isJapanDate(date) { if (!date) return false; return date.toDateString() === new Date(appData.targetDate).toDateString(); }
@@ -652,11 +699,33 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().split('T')[0];
             const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
             
+            const payPreview = getCurrentPayPeriodEstimate();
+            const avgPay = getAveragePaycheckAmount();
+            const payDiffPct = avgPay > 0 ? ((payPreview.net - avgPay) / avgPay) * 100 : 0;
+            const payDiffText = avgPay > 0 ?
+                (Math.abs(payDiffPct) < 5 ? `About the same as your average of $${avgPay.toFixed(0)}` :
+                (payDiffPct > 0 ? `${payDiffPct.toFixed(0)}% ABOVE your average of $${avgPay.toFixed(0)}` :
+                `${Math.abs(payDiffPct).toFixed(0)}% BELOW your average of $${avgPay.toFixed(0)}`))
+                : 'No paycheck history yet.';
+
+
             return `<div class="space-y-6">
                 <div class="card">
                     <h3>📊 Visualizations</h3>
                     <div class="graph-btn-container mb-4"><button class="btn btn-small btn-secondary graph-btn active" data-chart="growth" onclick="renderChart('growth')">Growth</button><button class="btn btn-small btn-secondary graph-btn" data-chart="projection" onclick="renderChart('projection')">Projection</button><button class="btn btn-small btn-secondary graph-btn" data-chart="income_vs_expense" onclick="renderChart('income_vs_expense')">In/Ex</button><button class="btn btn-small btn-secondary graph-btn" data-chart="income_breakdown" onclick="renderChart('income_breakdown')">Income</button><button class="btn btn-small btn-secondary graph-btn" data-chart="savings_rate" onclick="renderChart('savings_rate')">Savings</button><button class="btn btn-small btn-secondary graph-btn" data-chart="expense_donut" onclick="renderChart('expense_donut')">Expenses</button><button class="btn btn-small btn-secondary graph-btn" data-chart="cumulative_expense" onclick="renderChart('cumulative_expense')">Spending</button><button class="btn btn-small btn-secondary graph-btn" data-chart="hours_vs_pay" onclick="renderChart('hours_vs_pay')">Hours/Pay</button><button class="btn btn-small btn-secondary graph-btn" data-chart="avg_hourly_rate" onclick="renderChart('avg_hourly_rate')">Rate</button><button class="btn btn-small btn-secondary graph-btn" data-chart="tip_by_day" onclick="renderChart('tip_by_day')">Tips</button></div>
                     <div style="height: 350px;"><canvas id="analyticsChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>💰 Next Pay Preview</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">${payPreview.hours.toFixed(1)}h</div><div class="stat-label">Scheduled</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">$${payPreview.tips.toFixed(0)}</div><div class="stat-label">Tips</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--success-color);">$${payPreview.gross.toFixed(0)}</div><div class="stat-label">Gross</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--danger-color);">$${payPreview.taxes.toFixed(0)}</div><div class="stat-label">Taxes</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--warning-color);">$${payPreview.net.toFixed(0)}</div><div class="stat-label">Net</div></div>
+                    </div>
+                    <div class="text-sm text-gray text-center" style="margin-top: 0.5rem;">Pay period: ${payPreview.period.start.toLocaleDateString()} - ${payPreview.period.end.toLocaleDateString()}</div>
+                    <div class="text-sm text-gray text-center" style="margin-top: 0.25rem;">${payDiffText}</div>
                 </div>
                 <div class="card">
                     <h3>⚖️ Period-over-Period Comparison</h3>
