@@ -634,7 +634,16 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
         }
         function renderDayDetails(date) {
             const events = getEventsForDate(date); if (events.length === 0) return '';
-            return `<div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;"><h3 style="margin-bottom: 1rem;">Events for ${date.toLocaleDateString('en-US', {month: 'long', day: 'numeric'})}</h3><div class="space-y-3">${events.map(event => `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div><div style="font-weight: 500;">${event.type === 'income' ? `Income: $${event.data.amount.toFixed(2)}` : event.display}</div><div class="text-sm text-gray">${event.type === 'income' ? getIncomeTypeLabel(event.data.type) : `${calculateEventHours(event.data.startTime, event.data.endTime, event.data.type)}h`}</div></div>${event.type === 'event' ? `<div class="flex gap-2"><button onclick="editEvent(${event.data.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteEvent(${event.data.id})" class="btn btn-small btn-danger">Delete</button></div>` : ''}</div>`).join('')}</div></div>`;
+            return `<div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;"><h3 style="margin-bottom: 1rem;">Events for ${date.toLocaleDateString('en-US', {month: 'long', day: 'numeric'})}</h3><div class="space-y-3">${events.map(event => {
+                const info = `<div style="font-weight: 500;">${event.type === 'income' ? `Income: $${event.data.amount.toFixed(2)}` : event.display}</div><div class="text-sm text-gray">${event.type === 'income' ? getIncomeTypeLabel(event.data.type) : `${calculateEventHours(event.data.startTime, event.data.endTime, event.data.type)}h`}</div>`;
+                if (event.type === 'event') {
+                    return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div>${info}</div><div class="flex gap-2"><button onclick="editEvent(${event.data.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteEvent(${event.data.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
+                }
+                if (event.type === 'income') {
+                    return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div>${info}</div><div class="flex gap-2"><button onclick="editIncomeFromCalendar(${event.data.id})" class="btn btn-small btn-secondary">Edit</button></div></div>`;
+                }
+                return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);">${info}</div>`;
+            }).join('')}</div></div>`;
         }
         function renderAnalytics() {
             const allTransactions = [ ...appData.income.map(i => ({ date: i.date, type: 'income', amount: i.amount, taxes: i.taxes || 0, hours: i.hours || 0 })), ...appData.expenses.map(e => ({ date: e.date, type: 'expense', category: e.category, amount: e.amount })) ].sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date)); if (allTransactions.length === 0) { return `<div class="card text-center"><p>Not enough data for analytics.</p></div>`; }
@@ -936,6 +945,22 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
         async function addIncome() { const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { await customAlert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; appData.income.push({ id: Date.now(), type, amount: netAmount, hours, taxes, date }); appData.currentBalance += netAmount; await saveData(); document.getElementById('income-amount').value = ''; document.getElementById('income-hours').value = ''; document.getElementById('income-taxes').value = ''; document.getElementById('income-date').value = getCurrentDate(); document.getElementById('income-type').value = 'paycheck'; toggleIncomeFormFields(); renderView(); }
         async function updateIncome() { if (!editingIncome) return; const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { await customAlert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; const oldIncome = appData.income.find(inc => inc.id === editingIncome.id); const balanceDiff = netAmount - oldIncome.amount; appData.income = appData.income.map(inc => inc.id === editingIncome.id ? { ...editingIncome, type, amount: netAmount, hours, taxes, date } : inc); appData.currentBalance += balanceDiff; await saveData(); editingIncome = null; renderView(); }
         function startEditIncome(id) { const income = appData.income.find(inc => inc.id === id); if (!income) return; editingIncome = income; renderView(); setTimeout(() => { document.getElementById('income-type').value = income.type; toggleIncomeFormFields(); document.getElementById('income-amount').value = income.amount; document.getElementById('income-date').value = income.date; if (income.type === 'paycheck') { document.getElementById('income-hours').value = income.hours || ''; document.getElementById('income-taxes').value = income.taxes || ''; } }, 0); }
+        function editIncomeFromCalendar(id) {
+            const income = appData.income.find(inc => inc.id === id);
+            if (!income) return;
+            editingIncome = income;
+            navigateTo('income');
+            setTimeout(() => {
+                document.getElementById('income-type').value = income.type;
+                toggleIncomeFormFields();
+                document.getElementById('income-amount').value = income.amount;
+                document.getElementById('income-date').value = income.date;
+                if (income.type === 'paycheck') {
+                    document.getElementById('income-hours').value = income.hours || '';
+                    document.getElementById('income-taxes').value = income.taxes || '';
+                }
+            }, 0);
+        }
         function cancelEditIncome() { editingIncome = null; renderView(); }
         async function deleteIncome(id) { const income = appData.income.find(inc => inc.id === id); if (!income) return; appData.income = appData.income.filter(inc => inc.id !== id); appData.currentBalance -= income.amount; await saveData(); renderView(); }
         function toggleIncomeHistory() { showAllIncomeHistory = !showAllIncomeHistory; renderView(); }
