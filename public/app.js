@@ -29,6 +29,19 @@
         
         // --- Configuration & State ---
         const API_BASE = window.location.origin; let isOnline = true; let isAuthenticated = false; let isAdmin = false; let appData = getDefaultData(); let currentView = window.INIT_VIEW || 'dashboard'; let editingIncome = null; let editingExpense = null; let editingCategory = null; let editingRecurringExpense = null; let selectedDate = new Date().toISOString(); let showAddEvent = false; let editingEvent = null; let currentCalendarDate = new Date(); let eventData = { date: '', endDate: '', startTime: '', endTime: '', type: 'work', description: '' }; let analyticsChart = null; let fullAnalyticsData = {}; let showAllIncomeHistory = false; let dashboardGrowthChart = null; let dashboardExpenseChart = null; let currentCalendarView = 'month'; // 'month', 'week', or 'agenda'
+const chartDescriptions = {
+    growth: 'Total balance of your Japan fund over time.',
+    projection: 'Projected balance compared to ideal savings path.',
+    income_vs_expense: 'Monthly totals of income versus expenses.',
+    income_breakdown: 'Breakdown of gross income into net pay and taxes.',
+    savings_rate: 'Percentage of income saved after expenses each month.',
+    expense_donut: 'All-time distribution of expenses by category.',
+    cumulative_expense: 'Cumulative spending by category over time.',
+    hours_vs_pay: 'Hours worked compared to net pay each month.',
+    avg_hourly_rate: 'Effective gross hourly rate by month.',
+    tip_by_day: 'Average daily tips for each day of the week.',
+    net_savings: 'Net savings each month (income minus expenses).'
+};
         
         // --- Dark Mode ---
         function applyDarkMode(isDark) { document.body.classList.toggle('dark-mode', isDark); }
@@ -357,7 +370,7 @@
         function calculateEventHours(startTime, endTime, type) { if (type === 'vacation' || type === 'sick') return 8; if (!startTime || !endTime) return 0; const start = new Date(`2000-01-01T${startTime}`); const end = new Date(`2000-01-01T${endTime}`); return (end - start) / 3600000; }
         function getEventsForDate(date) { if (!date) return []; const dateStr = date.toISOString().split('T')[0]; const events = []; appData.income.filter(i => i.date === dateStr).forEach(i => events.push({ type: 'income', data: i, color: 'event-income', display: `$${i.amount.toFixed(0)}` })); appData.workShifts.filter(s => s.date === dateStr).forEach(s => { const colors = { work: 'event-work', vacation: 'event-vacation', sick: 'event-sick' }; const display = { work: s.startTime && s.endTime ? `${formatTime12h(s.startTime)}-${formatTime12h(s.endTime)}` : 'Work', vacation: 'Vacation', sick: 'Sick Day' }; events.push({ type: 'event', data: s, color: colors[s.type] || colors.work, display: display[s.type] || 'Event' }); }); return events; }
         function getNextPayPeriod() { const lastPayDate = parseLocalDate(appData.settings.lastPayDate); const today = new Date(); today.setHours(0, 0, 0, 0); let daysInPeriod = appData.settings.paySchedule === 'weekly' ? 7 : appData.settings.paySchedule === 'monthly' ? 30 : 14; let nextPayDate = new Date(lastPayDate.getTime()); while (nextPayDate <= today) { nextPayDate.setDate(nextPayDate.getDate() + daysInPeriod); } const periodStart = new Date(nextPayDate.getTime()); periodStart.setDate(periodStart.getDate() - daysInPeriod); const periodEnd = new Date(nextPayDate.getTime()); periodEnd.setDate(periodEnd.getDate() - 1); return { start: periodStart, end: periodEnd, nextPayDate: nextPayDate, daysInPeriod: daysInPeriod }; }
-        function getEstimatedPayForPeriod(startDate, endDate) {
+function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
             const shiftsInPeriod = appData.workShifts.filter(s => {
                 const d = new Date(s.date);
                 return d >= startDate && d <= endDate && s.type === 'work';
@@ -372,20 +385,30 @@
                 })
                 .reduce((sum, t) => sum + t.amount, 0);
 
+            let predictedTips = 0;
+            if (predict) {
+                const avgTips = getAverageTipsPerPayPeriod();
+                if (avgTips > tipsInPeriod) {
+                    predictedTips = avgTips - tipsInPeriod;
+                }
+            }
+
             const wageGross = totalHours * appData.settings.hourlyRate;
             const taxes = wageGross * appData.settings.taxRate;
-            const gross = wageGross + tipsInPeriod;
+            const gross = wageGross + tipsInPeriod + predictedTips;
             const net = gross - taxes;
 
             return {
                 hours: totalHours,
-                tips: tipsInPeriod,
+                tips: tipsInPeriod + predictedTips,
                 gross,
                 taxes,
                 net,
-                shifts: shiftsInPeriod.length
+                shifts: shiftsInPeriod.length,
+                predictedTips
             };
         }
+
         function getCurrentPayPeriodEstimate() { const period = getNextPayPeriod(); const estimate = getEstimatedPayForPeriod(period.start, period.end); return { ...estimate, period, periodType: appData.settings.paySchedule }; }
 
         // New smart pay forecast based on recent paychecks
@@ -431,6 +454,46 @@
             const periodType = avgDays === 7 ? 'weekly' : avgDays === 30 ? 'monthly' : 'bi-weekly';
 
             return { hours: avgHours, tips: avgTips, gross, taxes: avgTaxes, net, period: { start: periodStart, end: periodEnd }, periodType };
+
+function getCurrentPayPeriodEstimate() {
+            const period = getNextPayPeriod();
+            const estimate = getEstimatedPayForPeriod(period.start, period.end, true);
+            return { ...estimate, period, periodType: appData.settings.paySchedule };
+        }
+
+        function getAverageTipsPerPayPeriod() {
+            const tipsByPeriod = {};
+            appData.income.filter(i => i.type === 'tips_pay_period' || i.type === 'tips_daily')
+                .forEach(t => {
+                    const period = getPayPeriodForDate(parseLocalDate(t.date));
+                    const key = period.start.toISOString();
+                    tipsByPeriod[key] = (tipsByPeriod[key] || 0) + t.amount;
+                });
+            const totals = Object.values(tipsByPeriod);
+            if (totals.length === 0) return 0;
+            return totals.reduce((a, b) => a + b, 0) / totals.length;
+        }
+
+        function getAveragePaycheckAmount() {
+            const paychecks = appData.income.filter(i => i.type === 'paycheck');
+            if (paychecks.length === 0) return 0;
+            return paychecks.reduce((s, p) => s + p.amount, 0) / paychecks.length;
+        }
+
+        function getPayPeriodForDate(date) {
+            const daysInPeriod = appData.settings.paySchedule === 'weekly' ? 7 :
+                appData.settings.paySchedule === 'monthly' ? 30 : 14;
+            let nextPayDate = parseLocalDate(appData.settings.lastPayDate);
+            while (date >= nextPayDate) {
+                nextPayDate.setDate(nextPayDate.getDate() + daysInPeriod);
+            }
+            while (date < new Date(nextPayDate.getTime() - daysInPeriod * 86400000)) {
+                nextPayDate.setDate(nextPayDate.getDate() - daysInPeriod);
+            }
+            const periodStart = new Date(nextPayDate.getTime() - daysInPeriod * 86400000);
+            const periodEnd = new Date(nextPayDate.getTime() - 86400000);
+            return { start: periodStart, end: periodEnd };
+
         }
         function getDaysInMonth(date) { const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const lastDay = new Date(year, month + 1, 0); const daysInMonth = lastDay.getDate(); const startingDayOfWeek = firstDay.getDay(); const days = []; for (let i = 0; i < startingDayOfWeek; i++) { days.push(null); } for (let day = 1; day <= daysInMonth; day++) { days.push(new Date(year, month, day)); } return days; }
         function isToday(date) { if (!date) return false; return date.toDateString() === new Date().toDateString(); }
@@ -685,7 +748,27 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             const allTransactions = [ ...appData.income.map(i => ({ date: i.date, type: 'income', amount: i.amount, taxes: i.taxes || 0, hours: i.hours || 0 })), ...appData.expenses.map(e => ({ date: e.date, type: 'expense', category: e.category, amount: e.amount })) ].sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date)); if (allTransactions.length === 0) { return `<div class="card text-center"><p>Not enough data for analytics.</p></div>`; }
             const monthlyAggregates = {}; const cumulativeExpenseByCategory = {}; const processDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             allTransactions.forEach(t => { const monthKey = processDate(parseLocalDate(t.date)); if (!monthlyAggregates[monthKey]) monthlyAggregates[monthKey] = { gross: 0, net: 0, taxes: 0, hours: 0, expenses: 0 }; if (t.type === 'income') { monthlyAggregates[monthKey].net += t.amount; monthlyAggregates[monthKey].taxes += t.taxes; monthlyAggregates[monthKey].gross += t.amount + t.taxes; monthlyAggregates[monthKey].hours += t.hours; } else { monthlyAggregates[monthKey].expenses += t.amount; cumulativeExpenseByCategory[t.category] = (cumulativeExpenseByCategory[t.category] || 0) + t.amount; } });
-            const sortedMonths = Object.keys(monthlyAggregates).sort(); const monthlyChartData = { labels: sortedMonths.map(m => new Date(m + '-02').toLocaleString('default', { month: 'short', year: '2-digit' })), gross: sortedMonths.map(m => monthlyAggregates[m].gross), net: sortedMonths.map(m => monthlyAggregates[m].net), taxes: sortedMonths.map(m => monthlyAggregates[m].taxes), expenses: sortedMonths.map(m => monthlyAggregates[m].expenses), hours: sortedMonths.map(m => monthlyAggregates[m].hours), savingsRate: sortedMonths.map(m => { const inc = monthlyAggregates[m].net; const exp = monthlyAggregates[m].expenses; return inc > 0 ? ((inc - exp) / inc) * 100 : 0; }), avgHourlyRate: sortedMonths.map(m => { const gross = monthlyAggregates[m].gross; const hours = monthlyAggregates[m].hours; return hours > 0 ? gross / hours : 0; }) }; const cumulativeExpenseDatasets = appData.expenseCategories.map(cat => ({ label: cat.name, data: [], fill: 'stack', borderColor: cat.color, backgroundColor: cat.color + 'B3', tension: 0.2 }));
+            const sortedMonths = Object.keys(monthlyAggregates).sort();
+            const monthlyChartData = {
+                labels: sortedMonths.map(m => new Date(m + '-02').toLocaleString('default', { month: 'short', year: '2-digit' })),
+                gross: sortedMonths.map(m => monthlyAggregates[m].gross),
+                net: sortedMonths.map(m => monthlyAggregates[m].net),
+                taxes: sortedMonths.map(m => monthlyAggregates[m].taxes),
+                expenses: sortedMonths.map(m => monthlyAggregates[m].expenses),
+                hours: sortedMonths.map(m => monthlyAggregates[m].hours),
+                savingsRate: sortedMonths.map(m => {
+                    const inc = monthlyAggregates[m].net;
+                    const exp = monthlyAggregates[m].expenses;
+                    return inc > 0 ? ((inc - exp) / inc) * 100 : 0;
+                }),
+                avgHourlyRate: sortedMonths.map(m => {
+                    const gross = monthlyAggregates[m].gross;
+                    const hours = monthlyAggregates[m].hours;
+                    return hours > 0 ? gross / hours : 0;
+                }),
+                netSavings: sortedMonths.map(m => monthlyAggregates[m].net - monthlyAggregates[m].expenses)
+            };
+            const cumulativeExpenseDatasets = appData.expenseCategories.map(cat => ({ label: cat.name, data: [], fill: 'stack', borderColor: cat.color, backgroundColor: cat.color + 'B3', tension: 0.2 }));
             let cumulativeSums = {}; sortedMonths.forEach(m => { let monthExpenses = appData.expenses.filter(e => processDate(parseLocalDate(e.date)) === m); appData.expenseCategories.forEach((cat, i) => { let catSpendInMonth = monthExpenses.filter(e => e.category === cat.id).reduce((s, e) => s + e.amount, 0); cumulativeSums[cat.id] = (cumulativeSums[cat.id] || 0) + catSpendInMonth; cumulativeExpenseDatasets[i].data.push(cumulativeSums[cat.id]); }); });
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; const weeklyData = dayNames.map(() => ({ hours: 0, tips: 0, tipCount: 0 })); appData.workShifts.forEach(s => weeklyData[parseLocalDate(s.date).getDay()].hours += s.hours); appData.income.filter(i => i.type === 'tips_daily').forEach(t => { const d = parseLocalDate(t.date).getDay(); weeklyData[d].tips += t.amount; weeklyData[d].tipCount++; });
             const weeklyChartData = { labels: dayNames, avgTips: weeklyData.map(d => d.tipCount > 0 ? d.tips / d.tipCount : 0) }; const netSavings = appData.income.reduce((s, i) => s + i.amount, 0) - appData.expenses.reduce((s, e) => s + e.amount, 0); const startingBalance = appData.currentBalance - netSavings; const target = parseLocalDate(appData.targetDate); const firstDate = allTransactions.length > 0 ? parseLocalDate(allTransactions[0].date) : new Date(); const totalDaysToGoal = Math.max(1, Math.ceil((target - firstDate) / 86400000)); const idealDailySavings = (appData.goalAmount - startingBalance) / totalDaysToGoal; let currentIdeal = startingBalance; let currentActual = startingBalance; let projectionLabels = []; let idealPath = []; let actualPath = []; let transactionsByDate = {}; allTransactions.forEach(t => { const d = t.date; if (!transactionsByDate[d]) transactionsByDate[d] = 0; transactionsByDate[d] += (t.type === 'income' ? t.amount : -t.amount); }); for (let d = new Date(firstDate); d <= target; d.setDate(d.getDate() + 1)) { let dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; projectionLabels.push(dateKey); currentIdeal += idealDailySavings; idealPath.push(currentIdeal); if (transactionsByDate[dateKey]) currentActual += transactionsByDate[dateKey]; if (d <= new Date()) actualPath.push(currentActual); }
@@ -697,11 +780,46 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().split('T')[0];
             const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
             
+            const payPreview = getCurrentPayPeriodEstimate();
+            const avgPay = getAveragePaycheckAmount();
+            const payDiffPct = avgPay > 0 ? ((payPreview.net - avgPay) / avgPay) * 100 : 0;
+            const payDiffText = avgPay > 0 ?
+                (Math.abs(payDiffPct) < 5 ? `About the same as your average of $${avgPay.toFixed(0)}` :
+                (payDiffPct > 0 ? `${payDiffPct.toFixed(0)}% ABOVE your average of $${avgPay.toFixed(0)}` :
+                `${Math.abs(payDiffPct).toFixed(0)}% BELOW your average of $${avgPay.toFixed(0)}`))
+                : 'No paycheck history yet.';
+
+
             return `<div class="space-y-6">
                 <div class="card">
                     <h3>📊 Visualizations</h3>
-                    <div class="graph-btn-container mb-4"><button class="btn btn-small btn-secondary graph-btn active" data-chart="growth" onclick="renderChart('growth')">Growth</button><button class="btn btn-small btn-secondary graph-btn" data-chart="projection" onclick="renderChart('projection')">Projection</button><button class="btn btn-small btn-secondary graph-btn" data-chart="income_vs_expense" onclick="renderChart('income_vs_expense')">In/Ex</button><button class="btn btn-small btn-secondary graph-btn" data-chart="income_breakdown" onclick="renderChart('income_breakdown')">Income</button><button class="btn btn-small btn-secondary graph-btn" data-chart="savings_rate" onclick="renderChart('savings_rate')">Savings</button><button class="btn btn-small btn-secondary graph-btn" data-chart="expense_donut" onclick="renderChart('expense_donut')">Expenses</button><button class="btn btn-small btn-secondary graph-btn" data-chart="cumulative_expense" onclick="renderChart('cumulative_expense')">Spending</button><button class="btn btn-small btn-secondary graph-btn" data-chart="hours_vs_pay" onclick="renderChart('hours_vs_pay')">Hours/Pay</button><button class="btn btn-small btn-secondary graph-btn" data-chart="avg_hourly_rate" onclick="renderChart('avg_hourly_rate')">Rate</button><button class="btn btn-small btn-secondary graph-btn" data-chart="tip_by_day" onclick="renderChart('tip_by_day')">Tips</button></div>
+                    <div class="graph-btn-container mb-4">
+                        <button class="btn btn-small btn-secondary graph-btn active" data-chart="growth" onclick="renderChart('growth')">Growth</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="projection" onclick="renderChart('projection')">Projection</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="income_vs_expense" onclick="renderChart('income_vs_expense')">In/Ex</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="income_breakdown" onclick="renderChart('income_breakdown')">Income</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="savings_rate" onclick="renderChart('savings_rate')">Savings</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="net_savings" onclick="renderChart('net_savings')">Net</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="expense_donut" onclick="renderChart('expense_donut')">Expenses</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="cumulative_expense" onclick="renderChart('cumulative_expense')">Spending</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="hours_vs_pay" onclick="renderChart('hours_vs_pay')">Hours/Pay</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="avg_hourly_rate" onclick="renderChart('avg_hourly_rate')">Rate</button>
+                        <button class="btn btn-small btn-secondary graph-btn" data-chart="tip_by_day" onclick="renderChart('tip_by_day')">Tips</button>
+                    </div>
                     <div style="height: 350px;"><canvas id="analyticsChart"></canvas></div>
+                    <p id="chart-description" class="text-gray mt-2"></p>
+                </div>
+                <div class="card">
+                    <h3>💰 Next Pay Preview</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">${payPreview.hours.toFixed(1)}h</div><div class="stat-label">Scheduled</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">$${payPreview.tips.toFixed(0)}</div><div class="stat-label">Tips</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--success-color);">$${payPreview.gross.toFixed(0)}</div><div class="stat-label">Gross</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--danger-color);">$${payPreview.taxes.toFixed(0)}</div><div class="stat-label">Taxes</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--warning-color);">$${payPreview.net.toFixed(0)}</div><div class="stat-label">Net</div></div>
+                    </div>
+                    <div class="text-sm text-gray text-center" style="margin-top: 0.5rem;">Pay period: ${payPreview.period.start.toLocaleDateString()} - ${payPreview.period.end.toLocaleDateString()}</div>
+                    <div class="text-sm text-gray text-center" style="margin-top: 0.25rem;">${payDiffText}</div>
                 </div>
                 <div class="card">
                     <h3>⚖️ Period-over-Period Comparison</h3>
@@ -800,10 +918,36 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
         function createHoursVsPayChart(data) { return { type: 'bar', data: { labels: data.monthly.labels, datasets: [{ label: 'Hours Worked', data: data.monthly.hours, backgroundColor: 'rgba(255, 149, 0, 0.6)', yAxisID: 'y_hours' }, { label: 'Net Pay', data: data.monthly.net, borderColor: 'var(--success-color)', type: 'line', fill: false, tension: 0.1, yAxisID: 'y_money' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Monthly Hours Worked vs. Net Pay' } }, scales: { y_money: { type: 'linear', position: 'left', ticks: { callback: value => '$' + value } }, y_hours: { type: 'linear', position: 'right', ticks: { callback: value => value + 'h' }, grid: { drawOnChartArea: false } } } } }; }
         function createSavingsRateChart(data) { return { type: 'line', data: { labels: data.monthly.labels, datasets: [{ label: 'Monthly Savings Rate', data: data.monthly.savingsRate, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, tension: 0.1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Monthly Savings Rate' } }, scales: { y: { beginAtZero: true, ticks: { callback: value => value + '%' } } } } }; }
         function createAvgHourlyRateChart(data) { return { type: 'line', data: { labels: data.monthly.labels, datasets: [{ label: 'Effective Gross Hourly Rate', data: data.monthly.avgHourlyRate, backgroundColor: '#f97316', tension: 0.1, fill: false, borderColor: '#f97316' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Average Gross Hourly Rate' } }, scales: { y: { beginAtZero: false, ticks: { callback: value => '$' + value.toFixed(2) } } } } }; }
+        function createNetSavingsChart(data) { return { type: 'line', data: { labels: data.monthly.labels, datasets: [{ label: 'Net Savings', data: data.monthly.netSavings, borderColor: 'var(--success-color)', backgroundColor: 'rgba(52,199,89,0.1)', fill: true, tension: 0.1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Monthly Net Savings' } }, scales: { y: { beginAtZero: true, ticks: { callback: value => '$' + value } } } } }; }
         function createCumulativeExpenseChart(data) { return { type: 'line', data: { labels: data.cumulativeExpenses.labels, datasets: data.cumulativeExpenses.datasets }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, stacked: true, plugins: { title: { display: true, text: 'Cumulative Spending by Category' } }, scales: { y: { stacked: true, ticks: { callback: value => '$' + value } } } } }; }
         function createTipByDayChart(data) { return { type: 'bar', data: { labels: data.weekly.labels, datasets: [{ label: 'Average Tip Amount', data: data.weekly.avgTips, backgroundColor: 'var(--success-color)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Average Daily Tips by Day' }, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: value => '$' + value.toFixed(2) } } } } }; }
         function createGoalProjectionChart(data) { return { type: 'line', data: { labels: data.projection.labels, datasets: [{ label: 'Ideal Path', data: data.projection.idealPath, borderColor: 'var(--text-color-tertiary)', borderDash: [5, 5], fill: false, pointRadius: 0 }, { label: 'Actual Path', data: data.projection.actualPath, borderColor: 'var(--primary-color)', backgroundColor: 'rgba(0, 122, 255, 0.1)', fill: true, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Goal Projection' } }, scales: { y: { beginAtZero: true, ticks: { callback: value => '$' + value } } } } }; }
-        function renderChart(chartType) { if (analyticsChart) { analyticsChart.destroy(); } const ctx = document.getElementById('analyticsChart')?.getContext('2d'); if (!ctx) return; document.querySelectorAll('.graph-btn').forEach(btn => btn.classList.remove('active')); document.querySelector(`.btn[data-chart="${chartType}"]`)?.classList.add('active'); let chartConfig; switch (chartType) { case 'growth': chartConfig = createFundGrowthChart(fullAnalyticsData); break; case 'income_vs_expense': chartConfig = createIncomeVsExpenseChart(fullAnalyticsData); break; case 'income_breakdown': chartConfig = createIncomeBreakdownChart(fullAnalyticsData); break; case 'expense_donut': chartConfig = createExpenseDonutChart(fullAnalyticsData); break; case 'hours_vs_pay': chartConfig = createHoursVsPayChart(fullAnalyticsData); break; case 'savings_rate': chartConfig = createSavingsRateChart(fullAnalyticsData); break; case 'avg_hourly_rate': chartConfig = createAvgHourlyRateChart(fullAnalyticsData); break; case 'cumulative_expense': chartConfig = createCumulativeExpenseChart(fullAnalyticsData); break; case 'tip_by_day': chartConfig = createTipByDayChart(fullAnalyticsData); break; case 'projection': chartConfig = createGoalProjectionChart(fullAnalyticsData); break; default: chartConfig = createFundGrowthChart(fullAnalyticsData); } analyticsChart = new Chart(ctx, chartConfig); }
+        function renderChart(chartType) {
+            if (analyticsChart) { analyticsChart.destroy(); }
+            const ctx = document.getElementById('analyticsChart')?.getContext('2d');
+            if (!ctx) return;
+            document.querySelectorAll('.graph-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.btn[data-chart="${chartType}"]`)?.classList.add('active');
+            let chartConfig;
+            switch (chartType) {
+                case 'growth': chartConfig = createFundGrowthChart(fullAnalyticsData); break;
+                case 'income_vs_expense': chartConfig = createIncomeVsExpenseChart(fullAnalyticsData); break;
+                case 'income_breakdown': chartConfig = createIncomeBreakdownChart(fullAnalyticsData); break;
+                case 'expense_donut': chartConfig = createExpenseDonutChart(fullAnalyticsData); break;
+                case 'hours_vs_pay': chartConfig = createHoursVsPayChart(fullAnalyticsData); break;
+                case 'savings_rate': chartConfig = createSavingsRateChart(fullAnalyticsData); break;
+                case 'avg_hourly_rate': chartConfig = createAvgHourlyRateChart(fullAnalyticsData); break;
+                case 'net_savings': chartConfig = createNetSavingsChart(fullAnalyticsData); break;
+                case 'cumulative_expense': chartConfig = createCumulativeExpenseChart(fullAnalyticsData); break;
+                case 'tip_by_day': chartConfig = createTipByDayChart(fullAnalyticsData); break;
+                case 'projection': chartConfig = createGoalProjectionChart(fullAnalyticsData); break;
+                default: chartConfig = createFundGrowthChart(fullAnalyticsData);
+            }
+            analyticsChart = new Chart(ctx, chartConfig);
+            const desc = chartDescriptions[chartType] || '';
+            const descEl = document.getElementById('chart-description');
+            if (descEl) descEl.textContent = desc;
+        }
         function getStatsForPeriod(startDate, endDate) {
             const start = parseLocalDate(startDate);
             const end = parseLocalDate(endDate);
