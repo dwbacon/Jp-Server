@@ -408,6 +408,53 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
                 predictedTips
             };
         }
+
+        function getCurrentPayPeriodEstimate() { const period = getNextPayPeriod(); const estimate = getEstimatedPayForPeriod(period.start, period.end); return { ...estimate, period, periodType: appData.settings.paySchedule }; }
+
+        // New smart pay forecast based on recent paychecks
+        function getSmartPayForecast() {
+            const paychecks = appData.income.filter(i => i.type === 'paycheck').sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
+            if (paychecks.length === 0) {
+                const today = new Date();
+                return { hours: 0, tips: 0, gross: 0, taxes: 0, net: 0, period: { start: today, end: today }, periodType: 'period' };
+            }
+
+            let avgDays = 14;
+            if (paychecks.length > 1) {
+                const diffs = [];
+                for (let i = 1; i < paychecks.length; i++) {
+                    const prev = parseLocalDate(paychecks[i - 1].date);
+                    const curr = parseLocalDate(paychecks[i].date);
+                    diffs.push((curr - prev) / (1000 * 60 * 60 * 24));
+                }
+                avgDays = diffs.reduce((s, d) => s + d, 0) / diffs.length;
+                if (avgDays < 10) avgDays = 7; else if (avgDays < 20) avgDays = 14; else avgDays = 30;
+            }
+
+            const lastPay = parseLocalDate(paychecks[paychecks.length - 1].date);
+            const nextPay = new Date(lastPay.getTime());
+            nextPay.setDate(nextPay.getDate() + avgDays);
+            const periodStart = new Date(lastPay.getTime());
+            periodStart.setDate(periodStart.getDate() + 1);
+            const periodEnd = new Date(nextPay.getTime());
+            periodEnd.setDate(periodEnd.getDate() - 1);
+
+            const recentPaychecks = paychecks.slice(-3);
+            const avgNet = recentPaychecks.reduce((s, p) => s + p.amount, 0) / recentPaychecks.length;
+            const avgTaxes = recentPaychecks.reduce((s, p) => s + (p.taxes || 0), 0) / recentPaychecks.length;
+            const avgHours = recentPaychecks.reduce((s, p) => s + (p.hours || 0), 0) / recentPaychecks.length;
+
+            const tipsPeriods = appData.income.filter(i => i.type === 'tips_pay_period').sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
+            const recentTips = tipsPeriods.slice(-3);
+            const avgTips = recentTips.length > 0 ? recentTips.reduce((s, t) => s + t.amount, 0) / recentTips.length : 0;
+
+            const gross = avgNet + avgTaxes + avgTips;
+            const net = avgNet + avgTips;
+
+            const periodType = avgDays === 7 ? 'weekly' : avgDays === 30 ? 'monthly' : 'bi-weekly';
+
+            return { hours: avgHours, tips: avgTips, gross, taxes: avgTaxes, net, period: { start: periodStart, end: periodEnd }, periodType };
+
 function getCurrentPayPeriodEstimate() {
             const period = getNextPayPeriod();
             const estimate = getEstimatedPayForPeriod(period.start, period.end, true);
@@ -446,6 +493,7 @@ function getCurrentPayPeriodEstimate() {
             const periodStart = new Date(nextPayDate.getTime() - daysInPeriod * 86400000);
             const periodEnd = new Date(nextPayDate.getTime() - 86400000);
             return { start: periodStart, end: periodEnd };
+
         }
         function getDaysInMonth(date) { const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const lastDay = new Date(year, month + 1, 0); const daysInMonth = lastDay.getDate(); const startingDayOfWeek = firstDay.getDay(); const days = []; for (let i = 0; i < startingDayOfWeek; i++) { days.push(null); } for (let day = 1; day <= daysInMonth; day++) { days.push(new Date(year, month, day)); } return days; }
         function isToday(date) { if (!date) return false; return date.toDateString() === new Date().toDateString(); }
@@ -464,7 +512,7 @@ function getCurrentPayPeriodEstimate() {
             const daysRemaining = Math.max(0, Math.ceil((target - today) / 3600000 / 24));
             const monthsRemaining = Math.round(daysRemaining / 30.44);
             const monthlyNeeded = remaining > 0 ? remaining / Math.max(monthsRemaining, 1) : 0;
-            const biWeeklyEstimate = getCurrentPayPeriodEstimate();
+            const biWeeklyEstimate = getSmartPayForecast();
             const payPeriodTitle = biWeeklyEstimate.periodType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
             return `<div class="space-y-6">
@@ -840,7 +888,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
 
              return `<div class="space-y-6"><div class="card"><h2>Settings</h2><div class="space-y-6">
                 <div><h3>Look & Feel</h3><div class="flex justify-between items-center"><label class="form-label" style="margin:0;">Dark Mode</label><button class="btn btn-secondary" onclick="toggleDarkMode()">${appData.settings.darkMode ? 'Disable' : 'Enable'}</button></div></div>
-                <div><h3>💼 Work & Pay Settings</h3><div class="space-y-3"><div class="form-row"><div class="form-group"><label class="form-label">Hourly Rate ($)</label><input type="number" step="0.01" id="hourly-rate" value="${appData.settings.hourlyRate}" onchange="updateSetting('hourlyRate', parseFloat(this.value) || 0)" class="form-input"></div><div class="form-group"><label class="form-label">Tax Rate (%)</label><input type="number" step="0.01" id="tax-rate" value="${(appData.settings.taxRate * 100).toFixed(2)}" onchange="updateSetting('taxRate', (parseFloat(this.value) || 0) / 100)" class="form-input"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Pay Schedule</label><select id="pay-schedule" class="form-select" onchange="updateSetting('paySchedule', this.value)"><option value="weekly" ${appData.settings.paySchedule === 'weekly' ? 'selected' : ''}>Weekly</option><option value="bi-weekly" ${appData.settings.paySchedule === 'bi-weekly' ? 'selected' : ''}>Bi-weekly</option><option value="monthly" ${appData.settings.paySchedule === 'monthly' ? 'selected' : ''}>Monthly</option></select></div><div class="form-group"><label class="form-label">Last Pay Date</label><input type="date" id="last-pay-date" value="${appData.settings.lastPayDate}" onchange="updateSetting('lastPayDate', this.value)" class="form-input"></div></div></div></div>
+                <!-- Work & Pay Settings removed as pay predictions now use paycheck history -->
                 <div><h3>📊 Expense Categories</h3>
                     <div class="space-y-2">${appData.expenseCategories.map(cat => `
                         <div id="category-item-${cat.id}" class="flex items-center justify-between p-2" style="display: ${editingCategory === cat.id ? 'none' : 'flex'}">
