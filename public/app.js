@@ -389,7 +389,14 @@ const chartDescriptions = {
         function getCurrentDate() { const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
         function parseLocalDate(dateString) { if(!dateString) return new Date(); const [year, month, day] = dateString.split('-').map(Number); return new Date(year, month - 1, day); }
         function formatTime12h(time24) { if (!time24) return ''; const [hours, minutes] = time24.split(':'); const hour = parseInt(hours); const ampm = hour >= 12 ? 'pm' : 'am'; const hour12 = hour % 12 || 12; return `${hour12}:${minutes}${ampm}`; }
-        function calculateEventHours(startTime, endTime, type) { if (type === 'vacation' || type === 'sick') return 8; if (!startTime || !endTime) return 0; const start = new Date(`2000-01-01T${startTime}`); const end = new Date(`2000-01-01T${endTime}`); return (end - start) / 3600000; }
+        function calculateEventHours(startTime, endTime, type) {
+            if (type === 'vacation' || type === 'sick') return 8;
+            if (!startTime || !endTime) return 0;
+            const start = new Date(`2000-01-01T${startTime}`);
+            const end = new Date(`2000-01-01T${endTime}`);
+            const diff = (end - start) / 3600000;
+            return Math.round(diff * 100) / 100;
+        }
         function getEventsForDate(date) { if (!date) return []; const dateStr = date.toISOString().split('T')[0]; const events = []; appData.income.filter(i => i.date === dateStr).forEach(i => events.push({ type: 'income', data: i, color: 'event-income', display: `$${i.amount.toFixed(0)}` })); appData.workShifts.filter(s => s.date === dateStr).forEach(s => { const colors = { work: 'event-work', vacation: 'event-vacation', sick: 'event-sick' }; const display = { work: s.startTime && s.endTime ? `${formatTime12h(s.startTime)}-${formatTime12h(s.endTime)}` : 'Work', vacation: 'Vacation', sick: 'Sick Day' }; events.push({ type: 'event', data: s, color: colors[s.type] || colors.work, display: display[s.type] || 'Event' }); }); return events; }
         function getNextPayPeriod() { const lastPayDate = parseLocalDate(appData.settings.lastPayDate); const today = new Date(); today.setHours(0, 0, 0, 0); let daysInPeriod = appData.settings.paySchedule === 'weekly' ? 7 : appData.settings.paySchedule === 'monthly' ? 30 : 14; let nextPayDate = new Date(lastPayDate.getTime()); while (nextPayDate <= today) { nextPayDate.setDate(nextPayDate.getDate() + daysInPeriod); } const periodStart = new Date(nextPayDate.getTime()); periodStart.setDate(periodStart.getDate() - daysInPeriod); const periodEnd = new Date(nextPayDate.getTime()); periodEnd.setDate(periodEnd.getDate() - 1); return { start: periodStart, end: periodEnd, nextPayDate: nextPayDate, daysInPeriod: daysInPeriod }; }
 function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
@@ -799,7 +806,8 @@ ${displayedIncome.length === 0
         function renderDayDetails(date) {
             const events = getEventsForDate(date); if (events.length === 0) return '';
             return `<div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;"><h3 style="margin-bottom: 1rem;">Events for ${date.toLocaleDateString('en-US', {month: 'long', day: 'numeric'})}</h3><div class="space-y-3">${events.map(event => {
-                const info = `<div style="font-weight: 500;">${event.type === 'income' ? `Income: $${event.data.amount.toFixed(2)}` : event.display}</div><div class="text-sm text-gray">${event.type === 'income' ? getIncomeTypeLabel(event.data.type) : `${calculateEventHours(event.data.startTime, event.data.endTime, event.data.type)}h`}</div>`;
+                const hours = calculateEventHours(event.data.startTime, event.data.endTime, event.data.type);
+                const info = `<div style="font-weight: 500;">${event.type === 'income' ? `Income: $${event.data.amount.toFixed(2)}` : event.display}</div><div class="text-sm text-gray">${event.type === 'income' ? getIncomeTypeLabel(event.data.type) : `${hours.toFixed(2)}h`}</div>`;
                 if (event.type === 'event') {
                     return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div>${info}</div><div class="flex gap-2"><button onclick="editEvent(${event.data.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteEvent(${event.data.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
                 }
