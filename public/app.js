@@ -689,7 +689,7 @@ ${(() => {
         } else if (typeKey === 'side_gig') {
             detailLine = `${income.description || 'Side Gig'} • ${new Date(income.date).toLocaleDateString()}`;
         } else if (typeKey === 'other' || typeKey === 'gift') {
-            detailLine = new Date(income.date).toLocaleDateString();
+            detailLine = `${income.description || 'Other'} • ${new Date(income.date).toLocaleDateString()}`;
         } else {
             detailLine = `Tips • ${new Date(income.date).toLocaleDateString()}`;
         }
@@ -839,8 +839,9 @@ ${(() => {
                 const cat = isIncome ? null : getCategoryById(event.category);
                 const display = isIncome ? `$${event.amount.toFixed(2)} (${getIncomeTypeLabel(event.type)})` : event.startTime ? `${formatTime12h(event.startTime)} - ${formatTime12h(event.endTime)}` : event.type;
                 const colorClass = isIncome ? 'event-income' : `event-${event.type || 'work'}`;
+                const desc = event.description ? `<div class="text-sm">${event.description}</div>` : '';
 
-                return `<div class="agenda-day">${dayHeader}<div class="event-badge ${colorClass}">${display}</div></div>`;
+                return `<div class="agenda-day">${dayHeader}<div class="event-badge ${colorClass}">${display}</div>${desc}</div>`;
             }).join('');
             
             return `<div class="agenda-view">${agendaHtml}</div>`;
@@ -849,7 +850,7 @@ ${(() => {
             const events = getEventsForDate(date); if (events.length === 0) return '';
             return `<div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;"><h3 style="margin-bottom: 1rem;">Events for ${date.toLocaleDateString('en-US', {month: 'long', day: 'numeric'})}</h3><div class="space-y-3">${events.map(event => {
                 const hours = calculateEventHours(event.data.startTime, event.data.endTime, event.data.type);
-                const info = `<div style="font-weight: 500;">${event.type === 'income' ? `Income: $${event.data.amount.toFixed(2)}` : event.display}</div><div class="text-sm text-gray">${event.type === 'income' ? getIncomeTypeLabel(event.data.type) : `${hours.toFixed(2)}h`}</div>`;
+                const info = `<div style="font-weight: 500;">${event.type === 'income' ? `Income: $${event.data.amount.toFixed(2)}` : event.display}</div><div class="text-sm text-gray">${event.type === 'income' ? getIncomeTypeLabel(event.data.type) : `${hours.toFixed(2)}h`}</div>${event.data.description ? `<div class="text-sm">${event.data.description}</div>` : ''}`;
                 if (event.type === 'event') {
                     return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div>${info}</div><div class="flex gap-2"><button onclick="editEvent(${event.data.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteEvent(${event.data.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
                 }
