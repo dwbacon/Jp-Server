@@ -1,5 +1,5 @@
 {
-  "currentBalance": 1084.48,
+  "currentBalance": 1463.7200000000003,
   "goalAmount": 30000,
   "targetDate": "2028-05-26",
   "income": [
@@ -66,6 +66,70 @@
       "hours": 0,
       "taxes": 0,
       "date": "2025-06-21"
+    },
+    {
+      "id": 1750647609047,
+      "type": "tips_daily",
+      "amount": 3,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-06-22"
+    },
+    {
+      "id": 1750904686996,
+      "type": "tips_daily",
+      "amount": 5,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-06-25"
+    },
+    {
+      "id": 1751159606896,
+      "type": "tips_daily",
+      "amount": 5,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-06-28"
+    },
+    {
+      "id": 1751165132749,
+      "type": "side_gig",
+      "amount": 100,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-06-23"
+    },
+    {
+      "id": 1751785854294,
+      "type": "tips_daily",
+      "amount": 6,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-07-05"
+    },
+    {
+      "id": 1751785905361,
+      "type": "paycheck",
+      "amount": 242.54,
+      "hours": 24.47,
+      "taxes": 26.63,
+      "date": "2025-07-04"
+    },
+    {
+      "id": 1751940439518,
+      "type": "side_gig",
+      "amount": 435,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-04-30"
+    },
+    {
+      "id": 1751945510023,
+      "type": "side_gig",
+      "amount": 0.01,
+      "hours": 0,
+      "taxes": 0,
+      "date": "2025-06-30"
     }
   ],
   "workShifts": [
@@ -338,9 +402,228 @@
       "hours": 5,
       "type": "work",
       "description": ""
+    },
+    {
+      "id": 1750647863381,
+      "date": "2025-06-26",
+      "startTime": "",
+      "endTime": "",
+      "hours": 8,
+      "type": "vacation",
+      "description": ""
+    },
+    {
+      "id": 1750647910827.3088,
+      "date": "2025-06-29",
+      "startTime": "",
+      "endTime": "",
+      "hours": 8,
+      "type": "vacation",
+      "description": "Multi-day vacation"
+    },
+    {
+      "id": 1750647910827.986,
+      "date": "2025-06-30",
+      "startTime": "",
+      "endTime": "",
+      "hours": 8,
+      "type": "vacation",
+      "description": "Multi-day vacation"
+    },
+    {
+      "id": 1750647910827.484,
+      "date": "2025-07-01",
+      "startTime": "",
+      "endTime": "",
+      "hours": 8,
+      "type": "vacation",
+      "description": "Multi-day vacation"
+    },
+    {
+      "id": 1750647910827.0657,
+      "date": "2025-07-02",
+      "startTime": "",
+      "endTime": "",
+      "hours": 8,
+      "type": "vacation",
+      "description": "Multi-day vacation"
+    },
+    {
+      "id": 1751165013129,
+      "date": "2025-07-04",
+      "startTime": "16:00",
+      "endTime": "22:20",
+      "hours": 6.333333333333333,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1751165026383,
+      "date": "2025-07-05",
+      "startTime": "16:00",
+      "endTime": "22:00",
+      "hours": 6,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1751165046181,
+      "date": "2025-07-06",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1751786158422,
+      "date": "2025-07-11",
+      "startTime": "16:00",
+      "endTime": "21:00",
+      "hours": 5,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1751786171698,
+      "date": "2025-07-12",
+      "startTime": "16:00",
+      "endTime": "21:00",
+      "hours": 5,
+      "type": "work",
+      "description": ""
+    },
+    {
+      "id": 1751786187041,
+      "date": "2025-07-13",
+      "startTime": "17:00",
+      "endTime": "20:00",
+      "hours": 3,
+      "type": "work",
+      "description": ""
     }
   ],
-  "expenses": [],
+  "expenses": [
+    {
+      "id": 1750647670215,
+      "category": "bills",
+      "amount": 20,
+      "date": "2025-06-21",
+      "description": "AI- ChatGPT"
+    },
+    {
+      "id": 1751424072173,
+      "category": "entertainment",
+      "amount": 11.73,
+      "date": "2025-07-01",
+      "description": "Expense"
+    },
+    {
+      "id": 1751424128338,
+      "category": "entertainment",
+      "amount": 12.61,
+      "date": "2025-06-30",
+      "description": "Expense"
+    },
+    {
+      "id": 1751424150456,
+      "category": "entertainment",
+      "amount": 9.92,
+      "date": "2025-06-30",
+      "description": "Expense"
+    },
+    {
+      "id": 1751424176251,
+      "category": "entertainment",
+      "amount": 13.44,
+      "date": "2025-06-30",
+      "description": "Expense"
+    },
+    {
+      "id": 1751424202661,
+      "category": "entertainment",
+      "amount": 19.99,
+      "date": "2025-06-30",
+      "description": "Expense"
+    },
+    {
+      "id": 1751424230184,
+      "category": "entertainment",
+      "amount": 20.33,
+      "date": "2025-07-01",
+      "description": "Expense"
+    },
+    {
+      "id": 1751424257910,
+      "category": "entertainment",
+      "amount": 39.34,
+      "date": "2025-07-01",
+      "description": "Expense"
+    },
+    {
+      "id": 1751785947110,
+      "category": "food",
+      "amount": 5.37,
+      "date": "2025-07-06",
+      "description": "Dinner at East "
+    },
+    {
+      "id": 1751940494607,
+      "category": "japan_prep",
+      "amount": 200,
+      "date": "2025-05-01",
+      "description": "Migaku lifetime subscription "
+    },
+    {
+      "id": 1751940555036,
+      "category": "food",
+      "amount": 2.59,
+      "date": "2025-05-05",
+      "description": "drink at baumans"
+    },
+    {
+      "id": 1751940610367,
+      "category": "food",
+      "amount": 6.54,
+      "date": "2025-05-27",
+      "description": "Arizona vacation"
+    },
+    {
+      "id": 1751940639410,
+      "category": "food",
+      "amount": 11.03,
+      "date": "2025-06-02",
+      "description": "Arizona vacation"
+    },
+    {
+      "id": 1751944922358,
+      "category": "bills",
+      "amount": 21.3,
+      "date": "2025-06-05",
+      "description": "claude ai subsription"
+    },
+    {
+      "id": 1751944972883,
+      "category": "food",
+      "amount": 13.14,
+      "date": "2025-06-20",
+      "description": "Taco bell doordash"
+    },
+    {
+      "id": 1751945022625,
+      "category": "food",
+      "amount": 2.02,
+      "date": "2025-06-23",
+      "description": "Expense"
+    },
+    {
+      "id": 1751945165891,
+      "category": "food",
+      "amount": 7.96,
+      "date": "2025-06-30",
+      "description": "Expense"
+    }
+  ],
   "recurringExpenses": [],
   "settings": {
     "paySchedule": "bi-weekly",
