@@ -668,25 +668,42 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
                 <div class="card">
                     <div class="flex justify-between items-center mb-4"><h3 style="margin:0;">Recent Income</h3>${appData.income.length > 0 ? `<button class="btn btn-secondary btn-small" onclick="toggleIncomeHistory()">${showAllIncomeHistory ? 'Show Recent' : 'View Full History'}</button>`: ''}</div>
 
-${displayedIncome.length === 0
-                        ? `<p class="text-gray">${showAllIncomeHistory ? 'No income logged yet.' : 'No income in the last 3 days.'}</p>`
-                        : `<div class="space-y-3 stagger-in">` +
-                            displayedIncome.map((income, i) => {
-                                const displayAmount = `$${income.amount.toFixed(2)}`;
-                                const typeKey = (income.type || '').replace(/-/g, '_');
-                                let detailLine = '';
-                                if (typeKey === 'paycheck') {
-                                    detailLine = `${income.hours}h • $${((income.amount + (income.taxes || 0)) / (income.hours || 1)).toFixed(2)}/hr gross • ${new Date(income.date).toLocaleDateString()}`;
-                                } else if (typeKey === 'side_gig') {
-                                    detailLine = `${income.description || 'Side Gig'} • ${new Date(income.date).toLocaleDateString()}`;
-                                } else if (typeKey === 'other' || typeKey === 'gift') {
-                                    detailLine = new Date(income.date).toLocaleDateString();
-                                } else {
-                                    detailLine = `Tips • ${new Date(income.date).toLocaleDateString()}`;
-                                }
-                                return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color: var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div style="flex: 1;"><div style="font-weight: 500;">${getIncomeTypeLabel(typeKey)} - ${displayAmount}</div><div class="text-sm text-gray">${detailLine}</div></div><div class="flex gap-2"><button onclick="startEditIncome(${income.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${income.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
-                            }).join('') +
-                        `</div>`}
+${(() => {
+    if (displayedIncome.length === 0) {
+        return `<p class="text-gray">${showAllIncomeHistory ? 'No income logged yet.' : 'No income in the last 3 days.'}</p>`;
+    }
+    const renderItem = (income, i) => {
+        const displayAmount = `$${income.amount.toFixed(2)}`;
+        const typeKey = (income.type || '').replace(/-/g, '_');
+        let detailLine = '';
+        if (typeKey === 'paycheck') {
+            detailLine = `${income.hours}h • $${((income.amount + (income.taxes || 0)) / (income.hours || 1)).toFixed(2)}/hr gross • ${new Date(income.date).toLocaleDateString()}`;
+        } else if (typeKey === 'side_gig') {
+            detailLine = `${income.description || 'Side Gig'} • ${new Date(income.date).toLocaleDateString()}`;
+        } else if (typeKey === 'other' || typeKey === 'gift') {
+            detailLine = new Date(income.date).toLocaleDateString();
+        } else {
+            detailLine = `Tips • ${new Date(income.date).toLocaleDateString()}`;
+        }
+        return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color: var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div style="flex: 1;"><div style="font-weight: 500;">${getIncomeTypeLabel(typeKey)} - ${displayAmount}</div><div class="text-sm text-gray">${detailLine}</div></div><div class="flex gap-2"><button onclick="startEditIncome(${income.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${income.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
+    };
+    if (!showAllIncomeHistory) {
+        return `<div class="space-y-3 stagger-in">${displayedIncome.map(renderItem).join('')}</div>`;
+    }
+    const groups = {};
+    displayedIncome.forEach(inc => {
+        const key = inc.date.slice(0,7);
+        if (!groups[key]) groups[key] = { total:0, items:[] };
+        groups[key].total += inc.amount;
+        groups[key].items.push(inc);
+    });
+    const months = Object.keys(groups).sort((a,b) => parseLocalDate(b+'-01') - parseLocalDate(a+'-01'));
+    return `<div class="space-y-6 stagger-in">` + months.map(m => {
+        const label = new Date(m+'-01').toLocaleString('default',{ month:'long', year:'numeric' });
+        const items = groups[m].items.map(renderItem).join('');
+        return `<div><h4 style="margin:0 0 0.5rem 0;">${label} - Total: $${groups[m].total.toFixed(2)}</h4><div class="space-y-3">${items}</div></div>`;
+    }).join('') + `</div>`;
+})()}
 
                 </div>
             </div>`;
@@ -710,7 +727,31 @@ ${displayedIncome.length === 0
             </div>
             <div class="card">
                 <div class="flex justify-between items-center mb-4"><h3 style="margin:0;">🧾 Recent Expenses</h3>${appData.expenses.length > 0 ? `<button class="btn btn-secondary btn-small" onclick="toggleExpenseHistory()">${showAllExpenseHistory ? 'Show Recent' : 'View Full History'}</button>` : ''}</div>
-                ${displayedExpenses.length === 0 ? `<p class="text-gray">${showAllExpenseHistory ? 'No expenses logged yet.' : 'No expenses in the last 3 days.'}</p>` : `<div class="space-y-3 stagger-in">${displayedExpenses.map((expense, i) => { const cat = getCategoryById(expense.category); return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color:var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div class="flex items-center gap-4" style="flex: 1;"><div style="color: ${cat.color}; background-color: ${cat.color}20; padding: 0.5rem; border-radius: var(--border-radius-small); display:flex; align-items:center;">${cat.icon}</div><div><div style="font-weight: 500;">${expense.description}</div><div class="text-sm" style="color: var(--text-color-secondary);">${cat.name} • ${new Date(expense.date).toLocaleDateString()}</div></div></div><div class="flex items-center gap-4"><div style="font-weight: 600; font-size: 1.125rem; color: var(--danger-color);">-$${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="startEditExpense(${expense.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteExpense(${expense.id})" class="btn btn-small btn-danger">Delete</button></div></div></div>`; }).join('')}</div>`}
+                ${(() => {
+                    if (displayedExpenses.length === 0) {
+                        return `<p class="text-gray">${showAllExpenseHistory ? 'No expenses logged yet.' : 'No expenses in the last 3 days.'}</p>`;
+                    }
+                    const renderItem = (expense, i) => {
+                        const cat = getCategoryById(expense.category);
+                        return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color:var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div class="flex items-center gap-4" style="flex: 1;"><div style="color: ${cat.color}; background-color: ${cat.color}20; padding: 0.5rem; border-radius: var(--border-radius-small); display:flex; align-items:center;">${cat.icon}</div><div><div style="font-weight: 500;">${expense.description}</div><div class="text-sm" style="color: var(--text-color-secondary);">${cat.name} • ${new Date(expense.date).toLocaleDateString()}</div></div></div><div class="flex items-center gap-4"><div style="font-weight: 600; font-size: 1.125rem; color: var(--danger-color);">-$${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="startEditExpense(${expense.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteExpense(${expense.id})" class="btn btn-small btn-danger">Delete</button></div></div></div>`;
+                    };
+                    if (!showAllExpenseHistory) {
+                        return `<div class="space-y-3 stagger-in">${displayedExpenses.map(renderItem).join('')}</div>`;
+                    }
+                    const groups = {};
+                    displayedExpenses.forEach(exp => {
+                        const key = exp.date.slice(0,7);
+                        if (!groups[key]) groups[key] = { total:0, items:[] };
+                        groups[key].total += exp.amount;
+                        groups[key].items.push(exp);
+                    });
+                    const months = Object.keys(groups).sort((a,b) => parseLocalDate(b+'-01') - parseLocalDate(a+'-01'));
+                    return `<div class="space-y-6 stagger-in">` + months.map(m => {
+                        const label = new Date(m+'-01').toLocaleString('default',{ month:'long', year:'numeric' });
+                        const items = groups[m].items.map(renderItem).join('');
+                        return `<div><h4 style="margin:0 0 0.5rem 0;">${label} - Total: $${groups[m].total.toFixed(2)}</h4><div class="space-y-3">${items}</div></div>`;
+                    }).join('') + `</div>`;
+                })()}
             </div>`;
         }
         function renderCalendar() {
