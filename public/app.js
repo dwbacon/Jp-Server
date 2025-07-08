@@ -726,12 +726,12 @@ ${(() => {
                 threeDaysAgo.setHours(0,0,0,0);
                 displayedExpenses = displayedExpenses.filter(exp => parseLocalDate(exp.date) >= threeDaysAgo);
             }
-            const recurringExpenseForm = `<div class="card" id="recurring-expense-form" style="display:none"><h3>${editingRecurringExpense ? 'Edit' : 'Add'} Recurring Bill</h3><div class="space-y-3"><div class="form-row"><div class="form-group"><label class="form-label">Category</label><select id="recurring-expense-category" class="form-select">${appData.expenseCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Frequency</label><select id="recurring-expense-frequency" class="form-select"><option value="weekly">Weekly</option><option value="bi-weekly">Bi-weekly</option><option value="monthly">Monthly</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Amount ($)</label><input type="number" step="0.01" id="recurring-expense-amount" class="form-input" placeholder="29.99"></div><div class="form-group"><label class="form-label">Description</label><input type="text" id="recurring-expense-description" class="form-input" placeholder="Netflix Subscription"></div></div><div class="flex gap-4">${editingRecurringExpense ? `<button onclick="updateRecurringExpense()" class="btn btn-success" style="flex:1">Update</button><button onclick="cancelEditRecurringExpense()" class="btn btn-secondary" style="flex:1">Cancel</button>` : `<button onclick="addRecurringExpense()" class="btn btn-primary" style="flex:1">Add Bill</button><button onclick="toggleRecurringExpenseForm(false)" class="btn btn-secondary" style="flex:1">Cancel</button>`}</div></div></div>`;
+            const recurringExpenseForm = `<div class="card" id="recurring-expense-form" style="display:none"><h3>${editingRecurringExpense ? 'Edit' : 'Add'} Recurring Bill</h3><div class="space-y-3"><div class="form-row"><div class="form-group"><label class="form-label">Category</label><select id="recurring-expense-category" class="form-select">${appData.expenseCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Frequency</label><select id="recurring-expense-frequency" class="form-select"><option value="weekly">Weekly</option><option value="bi-weekly">Bi-weekly</option><option value="monthly">Monthly</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Amount ($)</label><input type="number" step="0.01" id="recurring-expense-amount" class="form-input" placeholder="29.99"></div><div class="form-group"><label class="form-label">Description</label><input type="text" id="recurring-expense-description" class="form-input" placeholder="Netflix Subscription"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Start Date</label><input type="date" id="recurring-expense-start" class="form-input" value="${getCurrentDate()}"></div></div><div class="flex gap-4">${editingRecurringExpense ? `<button onclick=\"updateRecurringExpense()\" class=\"btn btn-success\" style=\"flex:1\">Update</button><button onclick=\"cancelEditRecurringExpense()\" class=\"btn btn-secondary\" style=\"flex:1\">Cancel</button>` : `<button onclick=\"addRecurringExpense()\" class=\"btn btn-primary\" style=\"flex:1\">Add Bill</button><button onclick=\"toggleRecurringExpenseForm(false)\" class=\"btn btn-secondary\" style=\"flex:1\">Cancel</button>`}</div></div></div>`;
             return `<div class="space-y-6"><div class="card"><h2>💸 Spending This Month</h2>${pieChartHtml}</div><div class="card"><h3>${editingExpense ? 'Edit Expense' : 'Add New Expense'}</h3><div class="space-y-3"><div class="form-row"><div class="form-group"><label class="form-label">Category</label><select id="expense-category" class="form-select">${appData.expenseCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Amount ($)</label><input type="number" step="0.01" id="expense-amount" class="form-input" placeholder="12.99"></div><div class="form-group"><label class="form-label">Date</label><input type="date" id="expense-date" class="form-input" value="${getCurrentDate()}"></div></div><div class="form-group"><label class="form-label">Description</label><input type="text" id="expense-description" class="form-input" placeholder="Lunch with friends"></div><div class="flex gap-4">${editingExpense ? `<button onclick="updateExpense()" class="btn btn-primary" style="flex: 1;">Update Expense</button><button onclick="cancelEditExpense()" class="btn btn-secondary" style="flex: 1;">Cancel</button>` : `<button onclick="addExpense()" class="btn btn-primary" style="flex: 1;">Add Expense</button>`}</div></div></div>
             <div class="card">
                 <div class="flex justify-between items-center mb-4"><h3 style="margin:0;">🔁 Recurring Bills</h3><button class="btn btn-secondary btn-small" onclick="toggleRecurringExpenseForm(true)">Add New Bill</button></div>
                 ${recurringExpenseForm}
-                ${appData.recurringExpenses.length === 0 ? `<p class="text-gray">No recurring bills set up yet.</p>` : `<div class="space-y-3">${appData.recurringExpenses.map(bill => { const cat = getCategoryById(bill.category); return `<div class="flex items-center justify-between" style="padding:0.75rem; border-radius:var(--border-radius-medium); background-color:var(--background-color-light);"><div class="flex items-center gap-4"><div style="color: ${cat.color};">${cat.icon}</div><div><div style="font-weight:500;">${bill.description}</div><div class="text-sm text-gray">$${bill.amount.toFixed(2)} / ${bill.frequency.replace('-',' ')} • Next: ${new Date(bill.nextDueDate).toLocaleDateString()}</div></div></div><div class="flex gap-2"><button onclick="startEditRecurringExpense('${bill.id}')" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteRecurringExpense('${bill.id}')" class="btn btn-small btn-danger">Delete</button></div></div>`; }).join('')}</div>`}
+                ${appData.recurringExpenses.length === 0 ? `<p class="text-gray">No recurring bills set up yet.</p>` : `<div class="space-y-3">${appData.recurringExpenses.map(bill => { const cat = getCategoryById(bill.category); return `<div class="flex items-center justify-between" style="padding:0.75rem; border-radius:var(--border-radius-medium); background-color:var(--background-color-light);"><div class="flex items-center gap-4"><div style="color: ${cat.color};">${cat.icon}</div><div><div style="font-weight:500;">${bill.description}</div><div class="text-sm text-gray">$${bill.amount.toFixed(2)} / ${bill.frequency.replace('-',' ')} • Next: ${parseLocalDate(bill.nextDueDate).toLocaleDateString()}</div></div></div><div class="flex gap-2"><button onclick="startEditRecurringExpense('${bill.id}')" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteRecurringExpense('${bill.id}')" class="btn btn-small btn-danger">Delete</button></div></div>`; }).join('')}</div>`}
             </div>
             <div class="card">
                 <div class="flex justify-between items-center mb-4"><h3 style="margin:0;">🧾 Recent Expenses</h3>${appData.expenses.length > 0 ? `<button class="btn btn-secondary btn-small" onclick="toggleExpenseHistory()">${showAllExpenseHistory ? 'Show Recent' : 'View Full History'}</button>` : ''}</div>
@@ -1445,9 +1445,10 @@ ${(() => {
             const amount = parseFloat(document.getElementById('recurring-expense-amount').value);
             const category = document.getElementById('recurring-expense-category').value;
             const frequency = document.getElementById('recurring-expense-frequency').value;
+            const startDate = document.getElementById('recurring-expense-start').value;
             if (!description || !amount || amount <= 0) { await customAlert('Please fill out all fields.'); return; }
-            
-            const newBill = { id: `rec_${Date.now()}`, description, amount, category, frequency, nextDueDate: getCurrentDate() };
+
+            const newBill = { id: `rec_${Date.now()}`, description, amount, category, frequency, nextDueDate: startDate || getCurrentDate() };
             appData.recurringExpenses.push(newBill);
             await saveData();
             toggleRecurringExpenseForm(false);
@@ -1462,6 +1463,7 @@ ${(() => {
             document.getElementById('recurring-expense-amount').value = bill.amount;
             document.getElementById('recurring-expense-category').value = bill.category;
             document.getElementById('recurring-expense-frequency').value = bill.frequency;
+            document.getElementById('recurring-expense-start').value = bill.nextDueDate;
         }
         function cancelEditRecurringExpense() { editingRecurringExpense = null; toggleRecurringExpenseForm(false); renderView(); }
         async function updateRecurringExpense() {
@@ -1470,12 +1472,14 @@ ${(() => {
             const amount = parseFloat(document.getElementById('recurring-expense-amount').value);
             const category = document.getElementById('recurring-expense-category').value;
             const frequency = document.getElementById('recurring-expense-frequency').value;
+            const startDate = document.getElementById('recurring-expense-start').value;
             if (!description || !amount || amount <= 0) { await customAlert('Please fill out all fields.'); return; }
 
             editingRecurringExpense.description = description;
             editingRecurringExpense.amount = amount;
             editingRecurringExpense.category = category;
             editingRecurringExpense.frequency = frequency;
+            editingRecurringExpense.nextDueDate = startDate || editingRecurringExpense.nextDueDate;
             
             appData.recurringExpenses = appData.recurringExpenses.map(b => b.id === editingRecurringExpense.id ? editingRecurringExpense : b);
             await saveData();
