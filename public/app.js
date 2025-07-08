@@ -46,6 +46,13 @@ const chartDescriptions = {
     tip_by_day: 'Average daily tips for each day of the week.',
     net_savings: 'Net savings each month (income minus expenses).'
 };
+
+        // --- Balance Helpers ---
+        function recomputeBalance() {
+            const incomeTotal = appData.income.reduce((s, i) => s + i.amount, 0);
+            const expenseTotal = appData.expenses.reduce((s, e) => s + e.amount, 0);
+            appData.currentBalance = incomeTotal - expenseTotal;
+        }
         
         // --- Dark Mode ---
         function applyDarkMode(isDark) { document.body.classList.toggle('dark-mode', isDark); }
@@ -216,6 +223,7 @@ const chartDescriptions = {
                 return false;
             }
             try {
+                recomputeBalance();
                 showDataStatus('Saving...', false, true);
                 const response = await fetch(`${API_BASE}/api/data`, {
                     method: 'POST',
@@ -246,6 +254,7 @@ const chartDescriptions = {
             if (cached) {
                 try {
                     appData = JSON.parse(cached);
+                    recomputeBalance();
                     return true;
                 } catch (e) {
                     sessionStorage.removeItem('appData');
@@ -269,6 +278,7 @@ const chartDescriptions = {
                         expenseCategories: serverData.expenseCategories || defaultData.expenseCategories,
                         recurringExpenses: serverData.recurringExpenses || []
                     };
+                    recomputeBalance();
                     sessionStorage.setItem('appData', JSON.stringify(appData));
                     showDataStatus('Loaded!', false);
                     return true;
