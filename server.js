@@ -96,6 +96,7 @@ const defaultData = {
     income: [],
     workShifts: [],
     expenses: [],
+    monthlySpend: {},
     settings: {
         paySchedule: 'bi-weekly',
         lastPayDate: '2025-06-06',

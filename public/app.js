@@ -8,6 +8,7 @@
             income: [],
             workShifts: [],
             expenses: [],
+            monthlySpend: {},
             recurringExpenses: [],
             settings: {
                 paySchedule: 'bi-weekly',
@@ -52,6 +53,12 @@ const chartDescriptions = {
             const incomeTotal = appData.income.reduce((s, i) => s + i.amount, 0);
             const expenseTotal = appData.expenses.reduce((s, e) => s + e.amount, 0);
             appData.currentBalance = incomeTotal - expenseTotal;
+        }
+
+        function updateMonthlySpend(dateStr, delta) {
+            const month = dateStr.slice(0, 7);
+            appData.monthlySpend[month] = (appData.monthlySpend[month] || 0) + delta;
+            if (Math.abs(appData.monthlySpend[month]) < 0.00001) delete appData.monthlySpend[month];
         }
         
         // --- Dark Mode ---
@@ -276,8 +283,12 @@ const chartDescriptions = {
                         ...serverData,
                         settings: { ...defaultData.settings, ...(serverData.settings || {}) },
                         expenseCategories: serverData.expenseCategories || defaultData.expenseCategories,
-                        recurringExpenses: serverData.recurringExpenses || []
+                        recurringExpenses: serverData.recurringExpenses || [],
+                        monthlySpend: serverData.monthlySpend || {}
                     };
+                    if (Object.keys(appData.monthlySpend).length === 0 && appData.expenses.length > 0) {
+                        appData.expenses.forEach(e => updateMonthlySpend(e.date, e.amount));
+                    }
                     recomputeBalance();
                     sessionStorage.setItem('appData', JSON.stringify(appData));
                     showDataStatus('Loaded!', false);
@@ -388,6 +399,7 @@ const chartDescriptions = {
         }
         function getCurrentDate() { const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
         function parseLocalDate(dateString) { if(!dateString) return new Date(); const [year, month, day] = dateString.split('-').map(Number); return new Date(year, month - 1, day); }
+        function formatLocalDate(dateObj) { const y = dateObj.getFullYear(); const m = String(dateObj.getMonth() + 1).padStart(2, '0'); const d = String(dateObj.getDate()).padStart(2, '0'); return `${y}-${m}-${d}`; }
         function formatTime12h(time24) { if (!time24) return ''; const [hours, minutes] = time24.split(':'); const hour = parseInt(hours); const ampm = hour >= 12 ? 'pm' : 'am'; const hour12 = hour % 12 || 12; return `${hour12}:${minutes}${ampm}`; }
         function calculateEventHours(startTime, endTime, type) {
             if (type === 'vacation' || type === 'sick') return 8;
@@ -1363,11 +1375,11 @@ ${(() => {
         function toggleIncomeHistory() { showAllIncomeHistory = !showAllIncomeHistory; renderView(); }
         function toggleExpenseHistory() { showAllExpenseHistory = !showAllExpenseHistory; renderView(); }
         function setQuickAmount(amount) { const el = document.getElementById('expense-amount'); if (el) el.value = amount; }
-        async function addExpense() { const category = document.getElementById('expense-category').value; const amount = parseFloat(document.getElementById('expense-amount').value); const date = document.getElementById('expense-date').value; const description = document.getElementById('expense-description').value || 'Expense'; if (!amount || amount <= 0) return; appData.expenses.push({ id: Date.now(), category, amount, date, description }); appData.currentBalance -= amount; await saveData(); document.getElementById('expense-amount').value = ''; document.getElementById('expense-description').value = ''; document.getElementById('expense-date').value = getCurrentDate(); renderView(); }
-        async function updateExpense() { if (!editingExpense) return; const category = document.getElementById('expense-category').value; const amount = parseFloat(document.getElementById('expense-amount').value); const date = document.getElementById('expense-date').value; const description = document.getElementById('expense-description').value || 'Expense'; if (!amount || amount <= 0) return; const oldExpense = appData.expenses.find(exp => exp.id === editingExpense.id); const balanceDiff = oldExpense.amount - amount; appData.expenses = appData.expenses.map(exp => exp.id === editingExpense.id ? { ...editingExpense, category, amount, date, description } : exp); appData.currentBalance += balanceDiff; await saveData(); editingExpense = null; renderView(); }
+        async function addExpense() { const category = document.getElementById('expense-category').value; const amount = parseFloat(document.getElementById('expense-amount').value); const date = document.getElementById('expense-date').value; const description = document.getElementById('expense-description').value || 'Expense'; if (!amount || amount <= 0) return; appData.expenses.push({ id: Date.now(), category, amount, date, description }); updateMonthlySpend(date, amount); appData.currentBalance -= amount; await saveData(); document.getElementById('expense-amount').value = ''; document.getElementById('expense-description').value = ''; document.getElementById('expense-date').value = getCurrentDate(); renderView(); }
+        async function updateExpense() { if (!editingExpense) return; const category = document.getElementById('expense-category').value; const amount = parseFloat(document.getElementById('expense-amount').value); const date = document.getElementById('expense-date').value; const description = document.getElementById('expense-description').value || 'Expense'; if (!amount || amount <= 0) return; const oldExpense = appData.expenses.find(exp => exp.id === editingExpense.id); const balanceDiff = oldExpense.amount - amount; appData.expenses = appData.expenses.map(exp => exp.id === editingExpense.id ? { ...editingExpense, category, amount, date, description } : exp); updateMonthlySpend(oldExpense.date, -oldExpense.amount); updateMonthlySpend(date, amount); appData.currentBalance += balanceDiff; await saveData(); editingExpense = null; renderView(); }
         function startEditExpense(id) { const expense = appData.expenses.find(exp => exp.id === id); if (!expense) return; editingExpense = expense; renderView(); setTimeout(() => { document.getElementById('expense-category').value = expense.category; document.getElementById('expense-amount').value = expense.amount; document.getElementById('expense-date').value = expense.date; document.getElementById('expense-description').value = expense.description; }, 0); }
         function cancelEditExpense() { editingExpense = null; renderView(); }
-        async function deleteExpense(id) { const expense = appData.expenses.find(exp => exp.id === id); if (!expense) return; appData.expenses = appData.expenses.filter(exp => exp.id !== id); appData.currentBalance += expense.amount; await saveData(); renderView(); }
+        async function deleteExpense(id) { const expense = appData.expenses.find(exp => exp.id === id); if (!expense) return; appData.expenses = appData.expenses.filter(exp => exp.id !== id); updateMonthlySpend(expense.date, -expense.amount); appData.currentBalance += expense.amount; await saveData(); renderView(); }
         function handleDayDblClick(dateString) {
             selectDate(dateString);
             if (!showAddEvent) {
@@ -1451,6 +1463,7 @@ ${(() => {
 
             const newBill = { id: `rec_${Date.now()}`, description, amount, category, frequency, nextDueDate: startDate || getCurrentDate() };
             appData.recurringExpenses.push(newBill);
+            await processRecurringExpenses();
             await saveData();
             toggleRecurringExpenseForm(false);
             renderView();
@@ -1483,6 +1496,7 @@ ${(() => {
             editingRecurringExpense.nextDueDate = startDate || editingRecurringExpense.nextDueDate;
             
             appData.recurringExpenses = appData.recurringExpenses.map(b => b.id === editingRecurringExpense.id ? editingRecurringExpense : b);
+            await processRecurringExpenses();
             await saveData();
             editingRecurringExpense = null;
             toggleRecurringExpenseForm(false);
@@ -1504,6 +1518,7 @@ ${(() => {
                 while (nextDueDate <= today) {
                     // Add the expense
                     appData.expenses.push({ id: Date.now() + Math.random(), category: bill.category, amount: bill.amount, date: bill.nextDueDate, description: bill.description + " (Recurring)" });
+                    updateMonthlySpend(bill.nextDueDate, bill.amount);
                     appData.currentBalance -= bill.amount;
                     showDataStatus(`Auto-paid recurring bill: ${bill.description}`, false);
                     
@@ -1514,7 +1529,7 @@ ${(() => {
                     } else { // monthly
                         nextDueDate.setMonth(nextDueDate.getMonth() + 1);
                     }
-                    bill.nextDueDate = nextDueDate.toISOString().split('T')[0];
+                    bill.nextDueDate = formatLocalDate(nextDueDate);
                     needsSave = true;
                 }
             });
