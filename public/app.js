@@ -713,27 +713,6 @@ ${(() => {
     }).join('') + `</div>`;
 })()}
 
-${displayedIncome.length === 0
-                        ? `<p class="text-gray">${showAllIncomeHistory ? 'No income logged yet.' : 'No income in the last 3 days.'}</p>`
-                        : `<div class="space-y-3 stagger-in">` +
-                            displayedIncome.map((income, i) => {
-                                const displayAmount = `$${income.amount.toFixed(2)}`;
-                                const typeKey = (income.type || '').replace(/-/g, '_');
-                                let detailLine = '';
-                                if (typeKey === 'paycheck') {
-                                    detailLine = `${income.hours}h • $${((income.amount + (income.taxes || 0)) / (income.hours || 1)).toFixed(2)}/hr gross • ${new Date(income.date).toLocaleDateString()}`;
-                                } else if (typeKey === 'side_gig') {
-                                    detailLine = `${income.description || 'Side Gig'} • ${new Date(income.date).toLocaleDateString()}`;
-                                } else if (typeKey === 'other' || typeKey === 'gift') {
-                                    detailLine = `${income.description ? income.description + ' \u2022 ' : ''}${new Date(income.date).toLocaleDateString()}`;
-                                } else {
-                                    detailLine = `Tips • ${new Date(income.date).toLocaleDateString()}`;
-                                }
-                                return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color: var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div style="flex: 1;"><div style="font-weight: 500;">${getIncomeTypeLabel(typeKey)} - ${displayAmount}</div><div class="text-sm text-gray">${detailLine}</div></div><div class="flex gap-2"><button onclick="startEditIncome(${income.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${income.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
-                            }).join('') +
-                        `</div>`}
-
-
                 </div>
             </div>`;
         }
