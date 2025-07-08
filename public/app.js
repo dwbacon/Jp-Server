@@ -389,7 +389,14 @@ const chartDescriptions = {
         function getCurrentDate() { const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
         function parseLocalDate(dateString) { if(!dateString) return new Date(); const [year, month, day] = dateString.split('-').map(Number); return new Date(year, month - 1, day); }
         function formatTime12h(time24) { if (!time24) return ''; const [hours, minutes] = time24.split(':'); const hour = parseInt(hours); const ampm = hour >= 12 ? 'pm' : 'am'; const hour12 = hour % 12 || 12; return `${hour12}:${minutes}${ampm}`; }
-        function calculateEventHours(startTime, endTime, type) { if (type === 'vacation' || type === 'sick') return 8; if (!startTime || !endTime) return 0; const start = new Date(`2000-01-01T${startTime}`); const end = new Date(`2000-01-01T${endTime}`); return (end - start) / 3600000; }
+        function calculateEventHours(startTime, endTime, type) {
+            if (type === 'vacation' || type === 'sick') return 8;
+            if (!startTime || !endTime) return 0;
+            const start = new Date(`2000-01-01T${startTime}`);
+            const end = new Date(`2000-01-01T${endTime}`);
+            const diff = (end - start) / 3600000;
+            return Math.round(diff * 100) / 100;
+        }
         function getEventsForDate(date) { if (!date) return []; const dateStr = date.toISOString().split('T')[0]; const events = []; appData.income.filter(i => i.date === dateStr).forEach(i => events.push({ type: 'income', data: i, color: 'event-income', display: `$${i.amount.toFixed(0)}` })); appData.workShifts.filter(s => s.date === dateStr).forEach(s => { const colors = { work: 'event-work', vacation: 'event-vacation', sick: 'event-sick' }; const display = { work: s.startTime && s.endTime ? `${formatTime12h(s.startTime)}-${formatTime12h(s.endTime)}` : 'Work', vacation: 'Vacation', sick: 'Sick Day' }; events.push({ type: 'event', data: s, color: colors[s.type] || colors.work, display: display[s.type] || 'Event' }); }); return events; }
         function getNextPayPeriod() { const lastPayDate = parseLocalDate(appData.settings.lastPayDate); const today = new Date(); today.setHours(0, 0, 0, 0); let daysInPeriod = appData.settings.paySchedule === 'weekly' ? 7 : appData.settings.paySchedule === 'monthly' ? 30 : 14; let nextPayDate = new Date(lastPayDate.getTime()); while (nextPayDate <= today) { nextPayDate.setDate(nextPayDate.getDate() + daysInPeriod); } const periodStart = new Date(nextPayDate.getTime()); periodStart.setDate(periodStart.getDate() - daysInPeriod); const periodEnd = new Date(nextPayDate.getTime()); periodEnd.setDate(periodEnd.getDate() - 1); return { start: periodStart, end: periodEnd, nextPayDate: nextPayDate, daysInPeriod: daysInPeriod }; }
 function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
@@ -659,7 +666,7 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
                     <h2>${editingIncome ? 'Edit Income' : 'Income Tracking'}</h2>
                     <div class="space-y-3">
                         <div class="form-row"><div class="form-group"><label class="form-label">Type</label><select id="income-type" class="form-select" onchange="toggleIncomeFormFields()"><option value="paycheck">Paycheck</option><option value="tips_pay_period">Tips for Pay Period</option><option value="tips_daily">Daily Tips</option><option value="side_gig">Side Gig</option><option value="other">Other</option></select></div><div class="form-group"><label id="income-amount-label" class="form-label">Net Amount ($)</label><input type="number" step="0.01" id="income-amount" class="form-input" placeholder="248.50"></div></div>
-                        <div class="form-group" id="income-description-group" style="display:none"><label class="form-label">Description</label><input type="text" id="income-description" class="form-input" placeholder="Side gig details"></div>
+                        <div class="form-group" id="income-description-group" style="display:none"><label class="form-label">Description</label><input type="text" id="income-description" class="form-input" placeholder="Income details"></div>
                         <div class="form-row"><div class="form-group" id="income-hours-group"><label class="form-label">Hours</label><input type="number" step="0.1" id="income-hours" class="form-input" placeholder="22.5"></div><div class="form-group" id="income-taxes-group"><label class="form-label">Taxes Paid ($)</label><input type="number" step="0.01" id="income-taxes" class="form-input" placeholder="54.67"></div><div class="form-group"><label class="form-label">Date</label><input type="date" id="income-date" class="form-input" value="${getCurrentDate()}"></div></div>
                         <div class="flex gap-4">${editingIncome ? `<button onclick="updateIncome()" class="btn btn-success" style="flex: 1;">Update Income</button><button onclick="cancelEditIncome()" class="btn btn-secondary" style="flex: 1;">Cancel</button>` : `<button onclick="addIncome()" class="btn btn-primary" style="flex: 1;">Add Income</button>`}</div>
                     </div>
@@ -667,6 +674,7 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
                 <div class="card"><h3>Stats</h3><div class="stats-grid"><div class="stat-card"><div class="stat-number" style="color:var(--primary-color)">$${totalGrossIncome.toFixed(0)}</div><div class="stat-label">Gross Income</div></div><div class="stat-card"><div class="stat-number" style="color:var(--danger-color)">$${totalTaxes.toFixed(0)}</div><div class="stat-label">Taxes Paid</div></div><div class="stat-card"><div class="stat-number" style="color:var(--success-color)">$${totalNetIncome.toFixed(0)}</div><div class="stat-label">Net Income</div></div><div class="stat-card"><div class="stat-number" style="color:var(--warning-color)">$${avgGrossRate.toFixed(2)}</div><div class="stat-label">Avg Gross Rate</div></div><div class="stat-card"><div class="stat-number" style="color:var(--danger-color)">${effectiveTaxRate.toFixed(1)}%</div><div class="stat-label">Effective Tax Rate</div></div><div class='stat-card'><div class='stat-number' style='color:var(--primary-color)'>$${totalTips.toFixed(0)}</div><div class='stat-label'>Total Tips</div></div></div></div>
                 <div class="card">
                     <div class="flex justify-between items-center mb-4"><h3 style="margin:0;">Recent Income</h3>${appData.income.length > 0 ? `<button class="btn btn-secondary btn-small" onclick="toggleIncomeHistory()">${showAllIncomeHistory ? 'Show Recent' : 'View Full History'}</button>`: ''}</div>
+
 
 ${(() => {
     if (displayedIncome.length === 0) {
@@ -704,6 +712,27 @@ ${(() => {
         return `<div><h4 style="margin:0 0 0.5rem 0;">${label} - Total: $${groups[m].total.toFixed(2)}</h4><div class="space-y-3">${items}</div></div>`;
     }).join('') + `</div>`;
 })()}
+
+${displayedIncome.length === 0
+                        ? `<p class="text-gray">${showAllIncomeHistory ? 'No income logged yet.' : 'No income in the last 3 days.'}</p>`
+                        : `<div class="space-y-3 stagger-in">` +
+                            displayedIncome.map((income, i) => {
+                                const displayAmount = `$${income.amount.toFixed(2)}`;
+                                const typeKey = (income.type || '').replace(/-/g, '_');
+                                let detailLine = '';
+                                if (typeKey === 'paycheck') {
+                                    detailLine = `${income.hours}h • $${((income.amount + (income.taxes || 0)) / (income.hours || 1)).toFixed(2)}/hr gross • ${new Date(income.date).toLocaleDateString()}`;
+                                } else if (typeKey === 'side_gig') {
+                                    detailLine = `${income.description || 'Side Gig'} • ${new Date(income.date).toLocaleDateString()}`;
+                                } else if (typeKey === 'other' || typeKey === 'gift') {
+                                    detailLine = `${income.description ? income.description + ' \u2022 ' : ''}${new Date(income.date).toLocaleDateString()}`;
+                                } else {
+                                    detailLine = `Tips • ${new Date(income.date).toLocaleDateString()}`;
+                                }
+                                return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color: var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div style="flex: 1;"><div style="font-weight: 500;">${getIncomeTypeLabel(typeKey)} - ${displayAmount}</div><div class="text-sm text-gray">${detailLine}</div></div><div class="flex gap-2"><button onclick="startEditIncome(${income.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${income.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
+                            }).join('') +
+                        `</div>`}
+
 
                 </div>
             </div>`;
@@ -840,7 +869,8 @@ ${(() => {
         function renderDayDetails(date) {
             const events = getEventsForDate(date); if (events.length === 0) return '';
             return `<div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;"><h3 style="margin-bottom: 1rem;">Events for ${date.toLocaleDateString('en-US', {month: 'long', day: 'numeric'})}</h3><div class="space-y-3">${events.map(event => {
-                const info = `<div style="font-weight: 500;">${event.type === 'income' ? `Income: $${event.data.amount.toFixed(2)}` : event.display}</div><div class="text-sm text-gray">${event.type === 'income' ? getIncomeTypeLabel(event.data.type) : `${calculateEventHours(event.data.startTime, event.data.endTime, event.data.type)}h`}</div>`;
+                const hours = calculateEventHours(event.data.startTime, event.data.endTime, event.data.type);
+                const info = `<div style="font-weight: 500;">${event.type === 'income' ? `Income: $${event.data.amount.toFixed(2)}` : event.display}</div><div class="text-sm text-gray">${event.type === 'income' ? getIncomeTypeLabel(event.data.type) : `${hours.toFixed(2)}h`}</div>`;
                 if (event.type === 'event') {
                     return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div>${info}</div><div class="flex gap-2"><button onclick="editEvent(${event.data.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteEvent(${event.data.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
                 }
@@ -1261,7 +1291,7 @@ ${(() => {
                 if (hoursGroup) hoursGroup.style.display = 'block';
                 if (taxesGroup) taxesGroup.style.display = 'block';
             }
-            if (descGroup) descGroup.style.display = type === 'side_gig' ? 'block' : 'none';
+            if (descGroup) descGroup.style.display = (type === 'side_gig' || type === 'other') ? 'block' : 'none';
         }
         async function addIncome() {
             const type = document.getElementById('income-type').value;
@@ -1277,7 +1307,7 @@ ${(() => {
             }
             if (!netAmount || netAmount <= 0) return;
             const entry = { id: Date.now(), type, amount: netAmount, hours, taxes, date };
-            if (type === 'side_gig') entry.description = description;
+            if (type === 'side_gig' || type === 'other') entry.description = description;
             appData.income.push(entry);
             appData.currentBalance += netAmount;
             await saveData();
@@ -1307,7 +1337,7 @@ ${(() => {
             const oldIncome = appData.income.find(inc => inc.id === editingIncome.id);
             const balanceDiff = netAmount - oldIncome.amount;
             const updated = { ...editingIncome, type, amount: netAmount, hours, taxes, date };
-            if (type === 'side_gig') updated.description = description; else delete updated.description;
+            if (type === 'side_gig' || type === 'other') updated.description = description; else delete updated.description;
             appData.income = appData.income.map(inc => inc.id === editingIncome.id ? updated : inc);
             appData.currentBalance += balanceDiff;
             await saveData();
@@ -1328,7 +1358,7 @@ ${(() => {
                     document.getElementById('income-hours').value = income.hours || '';
                     document.getElementById('income-taxes').value = income.taxes || '';
                 }
-                if (income.type === 'side_gig') {
+                if (income.type === 'side_gig' || income.type === 'other') {
                     document.getElementById('income-description').value = income.description || '';
                 }
             }, 0);
@@ -1347,7 +1377,7 @@ ${(() => {
                     document.getElementById('income-hours').value = income.hours || '';
                     document.getElementById('income-taxes').value = income.taxes || '';
                 }
-                if (income.type === 'side_gig') {
+                if (income.type === 'side_gig' || income.type === 'other') {
                     document.getElementById('income-description').value = income.description || '';
                 }
             }, 0);
