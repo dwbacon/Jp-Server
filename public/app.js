@@ -29,6 +29,7 @@
         
         // --- Configuration & State ---
         const API_BASE = window.location.origin; let isOnline = true; let isAuthenticated = false; let isAdmin = false; let appData = getDefaultData(); let currentView = window.INIT_VIEW || 'dashboard'; let editingIncome = null; let editingExpense = null; let editingCategory = null; let editingRecurringExpense = null; let selectedDate = new Date().toISOString(); let showAddEvent = false; let editingEvent = null; let currentCalendarDate = new Date(); let eventData = { date: '', endDate: '', startTime: '', endTime: '', type: 'work', description: '' }; let analyticsChart = null; let fullAnalyticsData = {}; let showAllIncomeHistory = false; let dashboardGrowthChart = null; let dashboardExpenseChart = null; let currentCalendarView = 'month'; // 'month', 'week', or 'agenda'
+let forecastOffset = 0; // offset for pay forecast
 const chartDescriptions = {
     growth: 'Total balance of your Japan fund over time.',
     projection: 'Projected balance compared to ideal savings path.',
@@ -409,10 +410,14 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
             };
         }
 
-        function getCurrentPayPeriodEstimate() { const period = getNextPayPeriod(); const estimate = getEstimatedPayForPeriod(period.start, period.end); return { ...estimate, period, periodType: appData.settings.paySchedule }; }
+        function getCalendarPayEstimate() {
+            const period = getNextPayPeriod();
+            const estimate = getEstimatedPayForPeriod(period.start, period.end, true);
+            return { ...estimate, period, periodType: appData.settings.paySchedule };
+        }
 
-        // New smart pay forecast based on recent paychecks
-        function getSmartPayForecast() {
+        // Forecast pay based on paycheck history
+        function getHistoricalPayForecast(offset = 0) {
             const paychecks = appData.income.filter(i => i.type === 'paycheck').sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
             if (paychecks.length === 0) {
                 const today = new Date();
@@ -432,12 +437,10 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
             }
 
             const lastPay = parseLocalDate(paychecks[paychecks.length - 1].date);
-            const nextPay = new Date(lastPay.getTime());
-            nextPay.setDate(nextPay.getDate() + avgDays);
             const periodStart = new Date(lastPay.getTime());
-            periodStart.setDate(periodStart.getDate() + 1);
-            const periodEnd = new Date(nextPay.getTime());
-            periodEnd.setDate(periodEnd.getDate() - 1);
+            periodStart.setDate(periodStart.getDate() + 1 + avgDays * offset);
+            const periodEnd = new Date(periodStart.getTime());
+            periodEnd.setDate(periodEnd.getDate() + avgDays - 1);
 
             const recentPaychecks = paychecks.slice(-3);
             const avgNet = recentPaychecks.reduce((s, p) => s + p.amount, 0) / recentPaychecks.length;
@@ -454,12 +457,6 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
             const periodType = avgDays === 7 ? 'weekly' : avgDays === 30 ? 'monthly' : 'bi-weekly';
 
             return { hours: avgHours, tips: avgTips, gross, taxes: avgTaxes, net, period: { start: periodStart, end: periodEnd }, periodType };
-        }
-
-        function getCurrentPayPeriodEstimate() {
-            const period = getNextPayPeriod();
-            const estimate = getEstimatedPayForPeriod(period.start, period.end, true);
-            return { ...estimate, period, periodType: appData.settings.paySchedule };
         }
 
         function getAverageTipsPerPayPeriod() {
@@ -513,7 +510,14 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
             const daysRemaining = Math.max(0, Math.ceil((target - today) / 3600000 / 24));
             const monthsRemaining = Math.round(daysRemaining / 30.44);
             const monthlyNeeded = remaining > 0 ? remaining / Math.max(monthsRemaining, 1) : 0;
-            const biWeeklyEstimate = getSmartPayForecast();
+            const biWeeklyEstimate = getCalendarPayEstimate();
+            const avgPay = getAveragePaycheckAmount();
+            const payDiffPct = avgPay > 0 ? ((biWeeklyEstimate.net - avgPay) / avgPay) * 100 : 0;
+            const payDiffText = avgPay > 0
+                ? (Math.abs(payDiffPct) < 5 ? `About the same as your average of $${avgPay.toFixed(0)}`
+                    : (payDiffPct > 0 ? `${payDiffPct.toFixed(0)}% ABOVE your average of $${avgPay.toFixed(0)}`
+                    : `${Math.abs(payDiffPct).toFixed(0)}% BELOW your average of $${avgPay.toFixed(0)}`))
+                : 'No paycheck history yet.';
             const payPeriodTitle = biWeeklyEstimate.periodType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
             return `<div class="space-y-6">
@@ -554,6 +558,7 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
                         <div class="stat-card"><div class="stat-number" style="color: var(--warning-color);">$${biWeeklyEstimate.net.toFixed(0)}</div><div class="stat-label">Net</div></div>
                     </div>
                     <div class="text-sm text-gray text-center" style="margin-top: 1rem;">Pay period: ${biWeeklyEstimate.period.start.toLocaleDateString()} - ${biWeeklyEstimate.period.end.toLocaleDateString()}</div>
+                    <div class="text-sm text-gray text-center" style="margin-top: 0.25rem;">${payDiffText}</div>
                 </div>
                 <div class="card stagger-in" style="animation-delay: 300ms;">
                     <div class="stats-grid">
@@ -790,14 +795,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().split('T')[0];
             const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
             
-            const payPreview = getCurrentPayPeriodEstimate();
-            const avgPay = getAveragePaycheckAmount();
-            const payDiffPct = avgPay > 0 ? ((payPreview.net - avgPay) / avgPay) * 100 : 0;
-            const payDiffText = avgPay > 0 ?
-                (Math.abs(payDiffPct) < 5 ? `About the same as your average of $${avgPay.toFixed(0)}` :
-                (payDiffPct > 0 ? `${payDiffPct.toFixed(0)}% ABOVE your average of $${avgPay.toFixed(0)}` :
-                `${Math.abs(payDiffPct).toFixed(0)}% BELOW your average of $${avgPay.toFixed(0)}`))
-                : 'No paycheck history yet.';
+            const forecastCard = renderPayForecastCard();
 
 
             return `<div class="space-y-6">
@@ -819,18 +817,7 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
                     <div style="height: 350px;"><canvas id="analyticsChart"></canvas></div>
                     <p id="chart-description" class="text-gray mt-2"></p>
                 </div>
-                <div class="card">
-                    <h3>💰 Next Pay Preview</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">${payPreview.hours.toFixed(1)}h</div><div class="stat-label">Scheduled</div></div>
-                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">$${payPreview.tips.toFixed(0)}</div><div class="stat-label">Tips</div></div>
-                        <div class="stat-card"><div class="stat-number" style="color: var(--success-color);">$${payPreview.gross.toFixed(0)}</div><div class="stat-label">Gross</div></div>
-                        <div class="stat-card"><div class="stat-number" style="color: var(--danger-color);">$${payPreview.taxes.toFixed(0)}</div><div class="stat-label">Taxes</div></div>
-                        <div class="stat-card"><div class="stat-number" style="color: var(--warning-color);">$${payPreview.net.toFixed(0)}</div><div class="stat-label">Net</div></div>
-                    </div>
-                    <div class="text-sm text-gray text-center" style="margin-top: 0.5rem;">Pay period: ${payPreview.period.start.toLocaleDateString()} - ${payPreview.period.end.toLocaleDateString()}</div>
-                    <div class="text-sm text-gray text-center" style="margin-top: 0.25rem;">${payDiffText}</div>
-                </div>
+                ${forecastCard}
                 <div class="card">
                     <h3>⚖️ Period-over-Period Comparison</h3>
                     <div class="grid md:grid-cols-2 gap-4 my-4">
@@ -1014,7 +1001,42 @@ $${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="star
             });
             detailHtml += `</div>`;
 
-            resultsDiv.innerHTML = summaryHtml + detailHtml;
+        resultsDiv.innerHTML = summaryHtml + detailHtml;
+        }
+
+        function changeForecastPeriod(delta) {
+            forecastOffset += delta;
+            renderView();
+        }
+
+        function renderPayForecastCard() {
+            const payForecast = getHistoricalPayForecast(forecastOffset);
+            const avgPay = getAveragePaycheckAmount();
+            const payDiffPct = avgPay > 0 ? ((payForecast.net - avgPay) / avgPay) * 100 : 0;
+            const payDiffText = avgPay > 0
+                ? (Math.abs(payDiffPct) < 5 ? `About the same as your average of $${avgPay.toFixed(0)}`
+                    : (payDiffPct > 0 ? `${payDiffPct.toFixed(0)}% ABOVE your average of $${avgPay.toFixed(0)}`
+                    : `${Math.abs(payDiffPct).toFixed(0)}% BELOW your average of $${avgPay.toFixed(0)}`))
+                : 'No paycheck history yet.';
+            const payPeriodTitle = payForecast.periodType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            return `<div class="card">
+                    <div class="flex justify-between items-center">
+                        <h3>📅 ${payPeriodTitle} Forecast</h3>
+                        <div>
+                            <button class="btn btn-small btn-secondary" onclick="changeForecastPeriod(-1)">&#9664;</button>
+                            <button class="btn btn-small btn-secondary" onclick="changeForecastPeriod(1)">&#9654;</button>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">${payForecast.hours.toFixed(1)}h</div><div class="stat-label">Hours</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--primary-color);">$${payForecast.tips.toFixed(0)}</div><div class="stat-label">Tips</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--success-color);">$${payForecast.gross.toFixed(0)}</div><div class="stat-label">Gross</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--danger-color);">$${payForecast.taxes.toFixed(0)}</div><div class="stat-label">Taxes</div></div>
+                        <div class="stat-card"><div class="stat-number" style="color: var(--warning-color);">$${payForecast.net.toFixed(0)}</div><div class="stat-label">Net</div></div>
+                    </div>
+                    <div class="text-sm text-gray text-center" style="margin-top: 0.5rem;">${payForecast.period.start.toLocaleDateString()} - ${payForecast.period.end.toLocaleDateString()}</div>
+                    <div class="text-sm text-gray text-center" style="margin-top: 0.25rem;">${payDiffText}</div>
+                </div>`;
         }
 
         // --- Core Logic Functions ---
