@@ -916,9 +916,6 @@ ${displayedIncome.length === 0
             const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().split('T')[0];
             const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
             
-            const forecastCard = renderPayForecastCard();
-
-
             return `<div class="space-y-6">
                 <div class="card">
                     <h3>📊 Visualizations</h3>
@@ -938,7 +935,6 @@ ${displayedIncome.length === 0
                     <div style="height: 350px;"><canvas id="analyticsChart"></canvas></div>
                     <p id="chart-description" class="text-gray mt-2"></p>
                 </div>
-                ${forecastCard}
                 <div class="card">
                     <h3>⚖️ Period-over-Period Comparison</h3>
                     <div class="grid md:grid-cols-2 gap-4 my-4">
