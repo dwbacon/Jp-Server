@@ -670,10 +670,50 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
             <div class="card">
                 <div class="flex justify-between items-center mb-4"><h3 style="margin:0;">🧾 Recent Expenses</h3>${appData.expenses.length > 0 ? `<button class="btn btn-secondary btn-small" onclick="toggleExpenseHistory()">${showAllExpenseHistory ? 'Show Recent' : 'View Full History'}</button>` : ''}</div>
                 ${displayedExpenses.length === 0 ? `<p class="text-gray">${showAllExpenseHistory ? 'No expenses logged yet.' : 'No expenses in the last 3 days.'}</p>` : `<div class="space-y-3 stagger-in">${displayedExpenses.map((expense, i) => { const cat = getCategoryById(expense.category); return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color:var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div class="flex items-center gap-4" style="flex: 1;"><div style="color: ${cat.color}; background-color: ${cat.color}20; padding: 0.5rem; border-radius: var(--border-radius-small); display:flex; align-items:center;">${cat.icon}</div><div><div style="font-weight: 500;">${expense.description}</div><div class="text-sm" style="color: var(--text-color-secondary);">${cat.name} • ${new Date(expense.date).toLocaleDateString()}</div></div></div><div class="flex items-center gap-4"><div style="font-weight: 600; font-size: 1.125rem; color: var(--danger-color);">-$${expense.amount.toFixed(2)}</div><div class="flex gap-2"><button onclick="startEditExpense(${expense.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteExpense(${expense.id})" class="btn btn-small btn-danger">Delete</button></div></div></div>`; }).join('')}</div>`}
-            </div>
+            </div>`;
         }
+
         function renderCalendar() {
-            const addEventForm = `<div class="card" style="background-color: var(--background-color-light); margin-bottom: 1.5rem;"><h3 style="margin-bottom:1.5rem">${editingEvent ? 'Edit Event' : 'Add Event'}</h3><div class="space-y-3"><div class="form-row"><div class="form-group"><label class="form-label">Date</label><input type="date" id="event-date" value="${eventData.date}" class="form-input"></div><div class="form-group"><label class="form-label">Type</label><select id="event-type" class="form-select" onchange="toggleTimeInputs()"><option value="work" ${eventData.type === 'work' ? 'selected' : ''}>Work Shift</option><option value="vacation" ${eventData.type === 'vacation' ? 'selected' : ''}>Vacation</option><option value="sick" ${eventData.type === 'sick' ? 'selected' : ''}>Sick Day</option></select></div></div><div id="work-time-inputs" class="form-row"><div class="form-group"><label class="form-label">Start Time</label><input type="time" id="event-start-time" value="${eventData.startTime}" class="form-input"></div><div class="form-group"><label class="form-label">End Time</label><input type="time" id="event-end-time" value="${eventData.endTime}" class="form-input"></div></div><div id="vacation-period-inputs" style="display: ${(eventData.type === 'vacation' || eventData.type === 'sick') ? 'block' : 'none'}"><div class="form-group"><label class="form-label">End Date (Optional)</label><input type="date" id="event-end-date" value="${eventData.endDate}" class="form-input" min="${eventData.date}"></div></div><div class="flex gap-2"><button onclick="saveEvent()" class="btn btn-primary" style="flex: 1;">${editingEvent ? 'Update Event' : 'Add Event'}</button><button onclick="cancelEventForm()" class="btn btn-secondary">Cancel</button></div></div></div>`;
+            const addEventForm = `
+                <div class="card" style="background-color: var(--background-color-light); margin-bottom: 1.5rem;">
+                    <h3 style="margin-bottom:1.5rem">${editingEvent ? 'Edit Event' : 'Add Event'}</h3>
+                    <div class="space-y-3">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Date</label>
+                                <input type="date" id="event-date" value="${eventData.date}" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Type</label>
+                                <select id="event-type" class="form-select" onchange="toggleTimeInputs()">
+                                    <option value="work" ${eventData.type === 'work' ? 'selected' : ''}>Work Shift</option>
+                                    <option value="vacation" ${eventData.type === 'vacation' ? 'selected' : ''}>Vacation</option>
+                                    <option value="sick" ${eventData.type === 'sick' ? 'selected' : ''}>Sick Day</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="work-time-inputs" class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Start Time</label>
+                                <input type="time" id="event-start-time" value="${eventData.startTime}" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">End Time</label>
+                                <input type="time" id="event-end-time" value="${eventData.endTime}" class="form-input">
+                            </div>
+                        </div>
+                        <div id="vacation-period-inputs" style="display: ${(eventData.type === 'vacation' || eventData.type === 'sick') ? 'block' : 'none'}">
+                            <div class="form-group">
+                                <label class="form-label">End Date (Optional)</label>
+                                <input type="date" id="event-end-date" value="${eventData.endDate}" class="form-input" min="${eventData.date}">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="saveEvent()" class="btn btn-primary" style="flex: 1;">${editingEvent ? 'Update Event' : 'Add Event'}</button>
+                            <button onclick="cancelEventForm()" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>`;
             
             let calendarContent = '';
             if (currentCalendarView === 'month') calendarContent = renderMonthView();
