@@ -374,8 +374,18 @@ const chartDescriptions = {
 
         // --- Helper Functions ---
         function getCategoryById(id) { return appData.expenseCategories.find(c => c.id === id) || appData.expenseCategories.find(c => c.id === 'other'); }
-        const incomeTypeLabels = { paycheck: 'Paycheck', tips_pay_period: 'Tips for Pay Period', tips_daily: 'Daily Tips', side_gig: 'Side Gig' };
-        function getIncomeTypeLabel(type) { return incomeTypeLabels[type] || type.replace(/_/g, ' '); }
+        const incomeTypeLabels = {
+            paycheck: 'Paycheck',
+            tips_pay_period: 'Tips for Pay Period',
+            tips_daily: 'Daily Tips',
+            side_gig: 'Side Gig',
+            other: 'Other',
+            gift: 'Other'
+        };
+        function getIncomeTypeLabel(type) {
+            const key = (type || '').replace(/-/g, '_');
+            return incomeTypeLabels[key] || key.replace(/_/g, ' ');
+        }
         function getCurrentDate() { const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
         function parseLocalDate(dateString) { if(!dateString) return new Date(); const [year, month, day] = dateString.split('-').map(Number); return new Date(year, month - 1, day); }
         function formatTime12h(time24) { if (!time24) return ''; const [hours, minutes] = time24.split(':'); const hour = parseInt(hours); const ampm = hour >= 12 ? 'pm' : 'am'; const hour12 = hour % 12 || 12; return `${hour12}:${minutes}${ampm}`; }
@@ -624,16 +634,18 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
         }
         function renderIncome() {
             const totalNetIncome = appData.income.reduce((s, i) => s + i.amount, 0);
-            const totalHours = appData.income.reduce((s, i) => s + i.hours, 0);
-            const totalTaxes = appData.income.reduce((s, i) => s + (i.taxes || 0), 0);
-            const totalGrossIncome = totalNetIncome + totalTaxes;
-            const avgGrossRate = totalHours > 0 ? totalGrossIncome / totalHours : 0;
-            const paycheckIncome = appData.income.filter(i => i.type === 'paycheck' && i.taxes && i.taxes > 0);
+            const paycheckIncome = appData.income.filter(i => i.type === 'paycheck');
+            const tipsIncome = appData.income.filter(i => i.type.startsWith('tips'));
             const paycheckNetTotal = paycheckIncome.reduce((s, i) => s + i.amount, 0);
-            const paycheckTaxesTotal = paycheckIncome.reduce((s, i) => s + i.taxes, 0);
+            const paycheckTaxesTotal = paycheckIncome.reduce((s, i) => s + (i.taxes || 0), 0);
+            const tipsTotal = tipsIncome.reduce((s, i) => s + i.amount, 0);
+            const totalHours = paycheckIncome.reduce((s, i) => s + (i.hours || 0), 0);
             const paycheckGrossTotal = paycheckNetTotal + paycheckTaxesTotal;
+            const totalGrossIncome = paycheckGrossTotal + tipsTotal;
+            const avgGrossRate = totalHours > 0 ? totalGrossIncome / totalHours : 0;
             const effectiveTaxRate = paycheckGrossTotal > 0 ? (paycheckTaxesTotal / paycheckGrossTotal) * 100 : 0;
-            const totalTips = appData.income.filter(i => i.type.startsWith('tips')).reduce((s, i) => s + i.amount, 0);
+            const totalTaxes = paycheckTaxesTotal;
+            const totalTips = tipsTotal;
             let displayedIncome = [...appData.income].sort((a,b) => parseLocalDate(b.date) - parseLocalDate(a.date));
             if (!showAllIncomeHistory) {
                 const threeDaysAgo = new Date();
@@ -646,7 +658,8 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
                 <div class="card">
                     <h2>${editingIncome ? 'Edit Income' : 'Income Tracking'}</h2>
                     <div class="space-y-3">
-                        <div class="form-row"><div class="form-group"><label class="form-label">Type</label><select id="income-type" class="form-select" onchange="toggleIncomeFormFields()"><option value="paycheck">Paycheck</option><option value="tips_pay_period">Tips for Pay Period</option><option value="tips_daily">Daily Tips</option><option value="side_gig">Side Gig</option></select></div><div class="form-group"><label id="income-amount-label" class="form-label">Net Amount ($)</label><input type="number" step="0.01" id="income-amount" class="form-input" placeholder="248.50"></div></div>
+                        <div class="form-row"><div class="form-group"><label class="form-label">Type</label><select id="income-type" class="form-select" onchange="toggleIncomeFormFields()"><option value="paycheck">Paycheck</option><option value="tips_pay_period">Tips for Pay Period</option><option value="tips_daily">Daily Tips</option><option value="side_gig">Side Gig</option><option value="other">Other</option></select></div><div class="form-group"><label id="income-amount-label" class="form-label">Net Amount ($)</label><input type="number" step="0.01" id="income-amount" class="form-input" placeholder="248.50"></div></div>
+                        <div class="form-group" id="income-description-group" style="display:none"><label class="form-label">Description</label><input type="text" id="income-description" class="form-input" placeholder="Side gig details"></div>
                         <div class="form-row"><div class="form-group" id="income-hours-group"><label class="form-label">Hours</label><input type="number" step="0.1" id="income-hours" class="form-input" placeholder="22.5"></div><div class="form-group" id="income-taxes-group"><label class="form-label">Taxes Paid ($)</label><input type="number" step="0.01" id="income-taxes" class="form-input" placeholder="54.67"></div><div class="form-group"><label class="form-label">Date</label><input type="date" id="income-date" class="form-input" value="${getCurrentDate()}"></div></div>
                         <div class="flex gap-4">${editingIncome ? `<button onclick="updateIncome()" class="btn btn-success" style="flex: 1;">Update Income</button><button onclick="cancelEditIncome()" class="btn btn-secondary" style="flex: 1;">Cancel</button>` : `<button onclick="addIncome()" class="btn btn-primary" style="flex: 1;">Add Income</button>`}</div>
                     </div>
@@ -655,7 +668,25 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
                 <div class="card">
                     <div class="flex justify-between items-center mb-4"><h3 style="margin:0;">Recent Income</h3>${appData.income.length > 0 ? `<button class="btn btn-secondary btn-small" onclick="toggleIncomeHistory()">${showAllIncomeHistory ? 'Show Recent' : 'View Full History'}</button>`: ''}</div>
 
-                    ${displayedIncome.length === 0 ? `<p class="text-gray">${showAllIncomeHistory ? 'No income logged yet.' : 'No income in the last 3 days.'}</p>` : `<div class="space-y-3 stagger-in">${displayedIncome.map((income, i) => { const displayAmount = `$${income.amount.toFixed(2)}`; const detailLine = income.type === 'paycheck' ? `${income.hours}h • $${((income.amount + (income.taxes || 0)) / (income.hours || 1)).toFixed(2)}/hr gross • ${new Date(income.date).toLocaleDateString()}` : `Tips • ${new Date(income.date).toLocaleDateString()}`; return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color: var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div style="flex: 1;"><div style="font-weight: 500;">${getIncomeTypeLabel(income.type)} - ${displayAmount}</div><div class="text-sm text-gray">${detailLine}</div></div><div class="flex gap-2"><button onclick="startEditIncome(${income.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${income.id})" class="btn btn-small btn-danger">Delete</button></div></div>`; }).join('')}</div>`}
+${displayedIncome.length === 0
+                        ? `<p class="text-gray">${showAllIncomeHistory ? 'No income logged yet.' : 'No income in the last 3 days.'}</p>`
+                        : `<div class="space-y-3 stagger-in">` +
+                            displayedIncome.map((income, i) => {
+                                const displayAmount = `$${income.amount.toFixed(2)}`;
+                                const typeKey = (income.type || '').replace(/-/g, '_');
+                                let detailLine = '';
+                                if (typeKey === 'paycheck') {
+                                    detailLine = `${income.hours}h • $${((income.amount + (income.taxes || 0)) / (income.hours || 1)).toFixed(2)}/hr gross • ${new Date(income.date).toLocaleDateString()}`;
+                                } else if (typeKey === 'side_gig') {
+                                    detailLine = `${income.description || 'Side Gig'} • ${new Date(income.date).toLocaleDateString()}`;
+                                } else if (typeKey === 'other' || typeKey === 'gift') {
+                                    detailLine = new Date(income.date).toLocaleDateString();
+                                } else {
+                                    detailLine = `Tips • ${new Date(income.date).toLocaleDateString()}`;
+                                }
+                                return `<div class="flex items-center justify-between" style="padding: 0.75rem; border-radius: var(--border-radius-medium); background-color: var(--background-color-light); animation-delay: ${i * 50}ms; flex-wrap: wrap; gap: 0.5rem;"><div style="flex: 1;"><div style="font-weight: 500;">${getIncomeTypeLabel(typeKey)} - ${displayAmount}</div><div class="text-sm text-gray">${detailLine}</div></div><div class="flex gap-2"><button onclick="startEditIncome(${income.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${income.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
+                            }).join('') +
+                        `</div>`}
 
                 </div>
             </div>`;
@@ -1172,10 +1203,95 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
 
             return suggestions;
         }
-        function toggleIncomeFormFields() { const type = document.getElementById('income-type')?.value; if (!type) return; const amountLabel = document.getElementById('income-amount-label'); const hoursGroup = document.getElementById('income-hours-group'); const taxesGroup = document.getElementById('income-taxes-group'); const isNoTax = type.startsWith('tips') || type === 'side_gig'; if (isNoTax) { if(amountLabel) amountLabel.textContent = type === 'tips_daily' ? 'Daily Tips Amount ($)' : type === 'tips_pay_period' ? 'Total Tips for Pay Period ($)' : 'Side Gig Amount ($)'; if(hoursGroup) hoursGroup.style.display = 'none'; if(taxesGroup) taxesGroup.style.display = 'none'; } else { if(amountLabel) amountLabel.textContent = 'Net Amount ($)'; if(hoursGroup) hoursGroup.style.display = 'block'; if(taxesGroup) taxesGroup.style.display = 'block'; } }
-        async function addIncome() { const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { await customAlert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; appData.income.push({ id: Date.now(), type, amount: netAmount, hours, taxes, date }); appData.currentBalance += netAmount; await saveData(); document.getElementById('income-amount').value = ''; document.getElementById('income-hours').value = ''; document.getElementById('income-taxes').value = ''; document.getElementById('income-date').value = getCurrentDate(); document.getElementById('income-type').value = 'paycheck'; toggleIncomeFormFields(); renderView(); }
-        async function updateIncome() { if (!editingIncome) return; const type = document.getElementById('income-type').value; const netAmount = parseFloat(document.getElementById('income-amount').value); const date = document.getElementById('income-date').value; let hours = 0; let taxes = 0; if (type === 'paycheck') { hours = parseFloat(document.getElementById('income-hours').value) || 0; taxes = parseFloat(document.getElementById('income-taxes').value) || 0; if (!hours) { await customAlert('Paychecks require hours.'); return; } } if (!netAmount || netAmount <= 0) return; const oldIncome = appData.income.find(inc => inc.id === editingIncome.id); const balanceDiff = netAmount - oldIncome.amount; appData.income = appData.income.map(inc => inc.id === editingIncome.id ? { ...editingIncome, type, amount: netAmount, hours, taxes, date } : inc); appData.currentBalance += balanceDiff; await saveData(); editingIncome = null; renderView(); }
-        function startEditIncome(id) { const income = appData.income.find(inc => inc.id === id); if (!income) return; editingIncome = income; renderView(); setTimeout(() => { document.getElementById('income-type').value = income.type; toggleIncomeFormFields(); document.getElementById('income-amount').value = income.amount; document.getElementById('income-date').value = income.date; if (income.type === 'paycheck') { document.getElementById('income-hours').value = income.hours || ''; document.getElementById('income-taxes').value = income.taxes || ''; } }, 0); }
+        function toggleIncomeFormFields() {
+            const type = document.getElementById('income-type')?.value;
+            if (!type) return;
+            const amountLabel = document.getElementById('income-amount-label');
+            const hoursGroup = document.getElementById('income-hours-group');
+            const taxesGroup = document.getElementById('income-taxes-group');
+            const descGroup = document.getElementById('income-description-group');
+            const isNoTax = type.startsWith('tips') || type === 'side_gig' || type === 'other' || type === 'gift';
+            if (isNoTax) {
+                if (amountLabel) amountLabel.textContent = type === 'tips_daily' ? 'Daily Tips Amount ($)' : type === 'tips_pay_period' ? 'Total Tips for Pay Period ($)' : type === 'side_gig' ? 'Side Gig Amount ($)' : 'Amount ($)';
+                if (hoursGroup) hoursGroup.style.display = 'none';
+                if (taxesGroup) taxesGroup.style.display = 'none';
+            } else {
+                if (amountLabel) amountLabel.textContent = 'Net Amount ($)';
+                if (hoursGroup) hoursGroup.style.display = 'block';
+                if (taxesGroup) taxesGroup.style.display = 'block';
+            }
+            if (descGroup) descGroup.style.display = type === 'side_gig' ? 'block' : 'none';
+        }
+        async function addIncome() {
+            const type = document.getElementById('income-type').value;
+            const netAmount = parseFloat(document.getElementById('income-amount').value);
+            const date = document.getElementById('income-date').value;
+            const description = document.getElementById('income-description').value || '';
+            let hours = 0;
+            let taxes = 0;
+            if (type === 'paycheck') {
+                hours = parseFloat(document.getElementById('income-hours').value) || 0;
+                taxes = parseFloat(document.getElementById('income-taxes').value) || 0;
+                if (!hours) { await customAlert('Paychecks require hours.'); return; }
+            }
+            if (!netAmount || netAmount <= 0) return;
+            const entry = { id: Date.now(), type, amount: netAmount, hours, taxes, date };
+            if (type === 'side_gig') entry.description = description;
+            appData.income.push(entry);
+            appData.currentBalance += netAmount;
+            await saveData();
+            document.getElementById('income-amount').value = '';
+            document.getElementById('income-hours').value = '';
+            document.getElementById('income-taxes').value = '';
+            document.getElementById('income-description').value = '';
+            document.getElementById('income-date').value = getCurrentDate();
+            document.getElementById('income-type').value = 'paycheck';
+            toggleIncomeFormFields();
+            renderView();
+        }
+        async function updateIncome() {
+            if (!editingIncome) return;
+            const type = document.getElementById('income-type').value;
+            const netAmount = parseFloat(document.getElementById('income-amount').value);
+            const date = document.getElementById('income-date').value;
+            const description = document.getElementById('income-description').value || '';
+            let hours = 0;
+            let taxes = 0;
+            if (type === 'paycheck') {
+                hours = parseFloat(document.getElementById('income-hours').value) || 0;
+                taxes = parseFloat(document.getElementById('income-taxes').value) || 0;
+                if (!hours) { await customAlert('Paychecks require hours.'); return; }
+            }
+            if (!netAmount || netAmount <= 0) return;
+            const oldIncome = appData.income.find(inc => inc.id === editingIncome.id);
+            const balanceDiff = netAmount - oldIncome.amount;
+            const updated = { ...editingIncome, type, amount: netAmount, hours, taxes, date };
+            if (type === 'side_gig') updated.description = description; else delete updated.description;
+            appData.income = appData.income.map(inc => inc.id === editingIncome.id ? updated : inc);
+            appData.currentBalance += balanceDiff;
+            await saveData();
+            editingIncome = null;
+            renderView();
+        }
+        function startEditIncome(id) {
+            const income = appData.income.find(inc => inc.id === id);
+            if (!income) return;
+            editingIncome = income;
+            renderView();
+            setTimeout(() => {
+                document.getElementById('income-type').value = income.type;
+                toggleIncomeFormFields();
+                document.getElementById('income-amount').value = income.amount;
+                document.getElementById('income-date').value = income.date;
+                if (income.type === 'paycheck') {
+                    document.getElementById('income-hours').value = income.hours || '';
+                    document.getElementById('income-taxes').value = income.taxes || '';
+                }
+                if (income.type === 'side_gig') {
+                    document.getElementById('income-description').value = income.description || '';
+                }
+            }, 0);
+        }
         function editIncomeFromCalendar(id) {
             const income = appData.income.find(inc => inc.id === id);
             if (!income) return;
@@ -1189,6 +1305,9 @@ function getEstimatedPayForPeriod(startDate, endDate, predict = false) {
                 if (income.type === 'paycheck') {
                     document.getElementById('income-hours').value = income.hours || '';
                     document.getElementById('income-taxes').value = income.taxes || '';
+                }
+                if (income.type === 'side_gig') {
+                    document.getElementById('income-description').value = income.description || '';
                 }
             }, 0);
         }
