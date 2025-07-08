@@ -804,7 +804,7 @@ ${displayedIncome.length === 0
                     return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div>${info}</div><div class="flex gap-2"><button onclick="editEvent(${event.data.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteEvent(${event.data.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
                 }
                 if (event.type === 'income') {
-                    return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div>${info}</div><div class="flex gap-2"><button onclick="editIncomeFromCalendar(${event.data.id})" class="btn btn-small btn-secondary">Edit</button></div></div>`;
+                    return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);" class="flex justify-between items-center"><div>${info}</div><div class="flex gap-2"><button onclick="editIncomeFromCalendar(${event.data.id})" class="btn btn-small btn-secondary">Edit</button><button onclick="deleteIncome(${event.data.id})" class="btn btn-small btn-danger">Delete</button></div></div>`;
                 }
                 return `<div style="background-color:var(--background-color-light); padding: 0.75rem; border-radius: var(--border-radius-medium);">${info}</div>`;
             }).join('')}</div></div>`;
